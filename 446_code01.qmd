@@ -1,0 +1,2435 @@
+---
+title: "Low rate of Molecular Evolution of SARS-CoV-2 in Kidney Transplant Recipients"
+subtitle: "Statistical report"
+author: "Ivan Zahradka et al."
+format: 
+  html:  
+    embed-resources: true
+    keep-md: false
+    toc: true
+    toc-expand: 3
+    toc-depth: 4
+    toc-location: left
+    number-sections: true
+    number-depth: 4
+    code-fold: show
+    code-tools: true
+    code-summary: "Open code"
+    grid: 
+      body-width: 1000px
+      sidebar-width: 600px
+      margin-width: 100px
+editor: source
+project:
+  type: default
+  output-dir: output
+theme: darkly
+highlight-style: github-dark
+fontsize: 12 px
+code-block-bg: "#2D2D31"
+fontcolor: "#C4C4C4"
+monobackgroundcolor: "#3B3B3B"
+bibliography: references.bib
+---
+
+------------------------------------------------------------------------
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+```
+
+```{css, echo=FALSE}
+code.sourceCode {
+  font-size: 0.86em;
+  border: 1px solid #ffffff; /* White border */
+  padding: 9px; /* Add padding for better visibility */
+}
+
+code{
+    color: #EEE8AA; /* Change the color value as needed */
+}
+
+.equation {
+  text-align: center;
+  display: block;
+  margin: auto;
+}
+
+body {
+  text-align: justify;
+}
+```
+
+------------------------------------------------------------------------
+
+**Authors' affiliations**:
+
+[Ivan Zahradka^1^, Vojtech Petr^1^, Jan Paces^2^, Jana Zdychova^3^, Alena Srbova^3^, Radomira Limberkova^4^, Timotej Suri^4^, Filip Tichanek^5^, Denisa Husakova^4^, Helena Jirincova^4^, Miluse Hradilova^2^, Ilja Striz^3^, Ondrej Viklicky^1^]{style="font-size: larger;"}
+
+^1^Department of Nephrology, Institute for Clinical and Experimental Medicine ^2^Institute of Molecular Genetics, Academy of Sciences of the Czech Republic ^3^Department of Immunology, Institute for Clinical and Experimental Medicine ^4^National Reference Laboratory for Influenza and Other Respiratory Viruses, National Institute of Public Health ^5^Department of Data Science, Institute for Clinical and Experimental Medicine
+
+<br>
+
+**Original publication**
+
+This is statistical report of for the publication *TO BE ADDED*, published in the *TO BE ADDED* <br>
+
+[When using this code, cite original publication:]{style="font-size: larger;"}
+
+<br>
+
+Original GitHub repository: https://filip-tichanek.github.io/covid_viability/
+
+------------------------------------------------------------------------
+
+# Statistical analysis description
+
+Statistical analysis was performed in R [@Rcomp]. The entire analytical procedure, including the R code, is available online at: https://filip-tichanek.github.io/covid_viability/
+
+Repeatedly measured data (see *probability maps* models and *COVID mutations over time* below) were analyzed using a Bayesian framework (Bayesian hierarchical models) to better accommodate the uncertainty associated with the very limited number of independent units (patients) in our study [@mcelreath2018; @vandeschoot2020].
+
+## Probability maps
+
+Initially, we used a Bayesian hierarchical model with a Bernoulli distribution to estimate the probability of a viable virus (`via`) based on the time post the symptoms onset (`time`) and `Ct`. Both predictors were assumed to have a linear and additive effect, as exploratory analysis did not suggest the importance of non-linearity and/or interactions. The model was fitted using the `brms` package [@brmsadv; @brms], employing `Stan` software for probabilistic computing [@stan]. Given that the observations are from repeatedly measured patients, the subject (patient) ID (`patient_ID`) was included in the model as a random intercept.
+
+Based on the model, we created two maps showing the estimated probability of the viable virus based on the two predictors (`time`, `Ct`). One map (***fitted map***) shows probabilities fitted with the median posterior estimate, not accounting for the uncertainty related to parameter estimation. The second map (***whole posterior map***) includes all uncertainties in the estimates.
+
+The probabilities based on the ***fitted map*** address the question: "*What is the probability of a viable virus if the estimated parameters were true?*" This approach does not include uncertainty about the parameters. In other words, a probability of viability under 5% does **NOT** directly reflect a truly minimal risk of viability but represents a "hypothetical" scenario (assuming that the model parameters were estimated correctly). Conversely, the ***whole posterior map*** provides the answer to the question: "*What is the probability of a viable virus given the available data, also accounting for the uncertainties in the model?*".
+
+The Bayesian models were run using priors specified based on results from a previous study [@berengua2022].
+
+Mathematically, $P(\beta | \mathbf{X}, Y)$ is proportional to the product of the prior distribution $P(\beta)$ and the likelihood $P(Y | \mathbf{X}, \beta)$:
+
+$$
+P(\beta | \mathbf{X}, Y) \propto P(Y | \mathbf{X}, \beta) \times P(\beta)
+$$
+
+We ran models with both ***weakly informative priors*** (with minimal impact on the resulting estimates) and ***informative (strong) priors***. Both types of priors had a normal (Gaussian) distribution, centered at the effect estimated from Berengua data [@berengua2022], with the spread defined as $2*SE$ of the estimate (***strong prior***) or $10*SE$ (***weakly informative prior***).
+
+Therefore, the priors can be expressed as $normal(\mu, \sigma)$, where:
+
+$$\mu = -\beta_{berengua}$$
+
+$$\sigma = SE[\beta_{berengua}] \times 2$$ for ***informative prior***
+
+and
+
+$$\sigma = SE[\beta_{berengua}] \times 10$$
+
+for ***weakly informative prior***, with $\beta_{berengua}$ being estimated effect from [@berengua2022], and $SE[\beta_{berengua}]$ being standard error of estimated effects according to [@berengua2022].
+
+<br>
+
+## COVID mutations over time
+
+The mutation frequency over time was modeled using a Bayesian hierarchical regression model with a poisson distribution and using the same packages as the *probability maps* (see above). An individual patient was included as a random intercept together with individual observation to handle potential overdispersion. The model included time (`week`), treatment group (`molnupiravir`, with *remdesivir* as the reference), and their interaction (`week:molnupiravir`).
+
+Weakly informative priors were used to slightly regularize the estimated fixed effects, pushing them toward the null effect, except for `week:molnupiravir` interaction, where a positive interaction was expected due to the mutagenicity of molnupiravir treatment as recently described by Fountain-Jones [@fountain-jones2024].
+
+The priors for the main fixed effects were defined as Gaussian distributions centered at zero:
+
+For the numerical predictor week: $\mu = 0$ and $\sigma = 4\times\text{SD}(\text{week})$
+
+For the binary predictor molnupiravir: $\mu = 0$ and $\sigma = 2$
+
+The prior for the `week:molnupiravir` interaction was set to $\mu = 0.1$ and $\sigma = 0.5$, reflecting the expected association of molnupiravir with slightly higher mutagenicity.
+
+## Univariable negative binomial regression
+
+Negative binomial generalized linear models (NB-GLM), fitted with `MASS` package [@MASS], were used to assess the effect of several predictors (fitted in separate univariable models) on the number of days when the patient was positive as shown either using PCR (`symptoms_neg_PCR_days`) or cell cultures (`symptoms_neg_viability_days`). Due to the small sample size, P-values were validated using a permutation test of the model coefficients. The small sample size is also the reason why we did not perform multivariable model.
+
+# Analysis
+
+## Initialization
+
+### Packages
+
+```{r, warning=FALSE, message=FALSE}
+if (TRUE) {rm(list = ls() )}
+if (TRUE) { 
+  suppressWarnings(suppressMessages({
+    library(tidyverse)
+    library(stringr)
+    library(stringi)
+    library(ggpubr)
+    library(emmeans)
+    library(gtsummary)
+    library(car)
+    library(RJDBC)
+    library(sjPlot)
+    library(flextable)
+    library(openxlsx)
+    library(mgcv)
+    library(pROC)
+    library(cowplot)
+    library(boot)
+    library(glmnet)
+    library(brms)
+    library(projpred)
+    library(janitor)
+    library(arm)
+    library(corrplot)
+    library(lubridate)
+    library(kableExtra)    
+    library(ggdist)
+    library(bayesplot)
+    library(coxed)
+    library(quantreg)
+    library(ggbeeswarm)
+    library(ggpubr)
+    library(pROC)
+    
+    # Functions clashes
+    select <- dplyr::select
+    rename <- dplyr::rename
+    mutate <- dplyr::mutate
+    recode <- dplyr::recode
+    summarize <- dplyr::summarize
+    count <- dplyr::count
+    
+    # Simple math functions
+    logit <-function(x){log(x/(1-x))}
+    inv_logit <- function(x){exp(x)/(1+exp(x))}
+  }))
+}
+```
+
+### Functions
+
+```{r}
+getwd()
+source('functions.R')
+```
+
+### Directories
+
+```{r}
+folders <- c("data", 
+             "gitignore",
+             "gitignore/run",
+             "gitignore/figures",
+             "gitignore/outputs",
+             "gitignore/data")
+
+invisible(
+  lapply(folders, function(x) if (!dir.exists(x)) 
+    dir.create(x, recursive = TRUE)
+    )
+  )
+```
+
+### Seed
+
+```{r}
+set.seed(16)
+```
+
+## Data
+
+### Import
+
+```{r}
+data <- read.xlsx('gitignore/data/zdroj virova rna.xlsx') %>% 
+  select(patient_ID:T_depl_year, D0_date:D6_PCR, PRA:DM) %>% 
+  mutate(patient_ID = as.character(patient_ID),
+         antiviral = as.numeric(antiviral-1)) %>% 
+  mutate(across(where(is.character), ~if_else(. == "neg.", "0", .))) %>% 
+  mutate(across(where(is.character), ~if_else(. == "neg", "0", .))) 
+
+dates <- colnames(data)[grepl('date', colnames(data))]
+
+data <- excel_date(data, dates = dates) %>% 
+  mutate(days_postsymp = D0_date - symptoms_date)
+
+summary(data)
+```
+
+### Long format
+
+```{r}
+
+if(file.exists('data/data_long.txt') == FALSE){
+  data_long <- data %>%
+    mutate(D0_PCR = as.character(D0_PCR)) %>% 
+    pivot_longer(
+      cols = -c(patient_ID:T_depl_year, days_postsymp),
+      names_to = c("time", ".value"), 
+      names_pattern = "(D\\d+)_(.*)") %>% 
+  
+    filter(!is.na(PCR)) %>% 
+    mutate(PCR = as.numeric(PCR)) %>% 
+    mutate(time = if_else(time == 'D0', '0', time),
+           time = if_else(time == 'D1', '1', time),
+           time = if_else(time == 'D2', '2', time),
+           time = if_else(time == 'D3', '3', time),
+           time = if_else(time == 'D4', '4', time),
+           time = if_else(time == 'D5', '5', time),
+           time = if_else(time == 'D6', '6', time)) %>% 
+  
+    mutate(time = as.numeric(time) + (as.numeric(days_postsymp)/7)) %>% 
+    mutate(time = if_else(time < 0, 0, time)) %>% 
+    filter(!is.na(via)) %>% 
+    select(patient_ID, PCR, time, via) %>% 
+    mutate(patient_ID = factor(patient_ID))
+  
+  write.table(data_long, 'data/data_long.txt')
+  }
+
+data_long <- read.table('data/data_long.txt') %>% 
+  mutate(patient_ID = factor(patient_ID))
+
+summary(data_long)
+```
+
+### Data for univariable GLMs
+
+```{r}
+
+if(file.exists('data/data.txt') == FALSE){
+  data <- data %>% 
+    
+    select(male_sex, age_at_COVID, T_depl_year, PRA,
+           days_from_Tx, HLA.missmatch, `Doba.na.HD.(roky)`, 
+           `CMV.dárce`, `CMV.pozitivita.příjemce`, 
+           `imunosuprese.před.Tx`, DM, tx_date, birth_date,
+           antiviral, 
+           symptoms_neg_PCR_days,
+           symptoms_neg_viability_days) %>% 
+    
+    mutate(age_at_Tx = as.numeric(tx_date - birth_date)/365.25,
+           Years_since_Tx = (days_from_Tx/365.25),
+           HLA_MM = HLA.missmatch,
+           HD_vignette = `Doba.na.HD.(roky)`,
+           CMV_rec = `CMV.pozitivita.příjemce`,
+           CMV_don = `CMV.dárce`,
+           IS_preTx = `imunosuprese.před.Tx`,
+           Remdsivir = antiviral) %>%
+    
+    mutate(Tx_less_year = if_else(Years_since_Tx < 1, 1, 0),
+           CMV_MM = if_else(CMV_don == 1 & CMV_rec == 0, 1, 0)) %>% 
+    
+    select(male_sex, age_at_COVID, age_at_Tx, Years_since_Tx, Tx_less_year,
+           T_depl_year, PRA, HLA_MM, HD_vignette, CMV_rec, CMV_don, 
+           IS_preTx, DM, Remdsivir,
+           symptoms_neg_PCR_days,
+           symptoms_neg_viability_days)
+  
+  write.table(data, 'data/data.txt')
+  }
+
+data <- read.table('data/data.txt')
+
+summary(data)
+```
+
+### Data of Berengua 2022
+
+```{r}
+if(file.exists('data/data_berengua.txt') == FALSE){
+  data_berengua <- read.xlsx('gitignore/data/berengua2022.xlsx') %>% 
+    mutate(week = days/7) %>% 
+    select(ct, week, viability)
+  
+  write.table(data_berengua, 'data/data_berengua.txt')
+}
+
+data_berengua <- read.table('data/data_berengua.txt')
+summary(data_berengua)
+```
+
+### Data mutations per time
+
+```{r}
+if(file.exists('data/data_mutation_time.txt') == FALSE){
+  data_mutations <- read.xlsx('gitignore/data/stery_mutace_mixedmodel.xlsx')
+    
+  
+  write.table(data_mutations, 'data/stery_mutace_mixedmodel.txt')
+}
+
+data_mutations <- read.table('data/stery_mutace_mixedmodel.txt') %>% 
+  mutate(across(c(treatment, s_all, Patient.ID), as.factor)) %>% 
+  mutate(f_50 = f_50,
+         f_5 = f_5,
+         f_05 = f_05,
+         all = all) %>% 
+  mutate(week = (Day-1)/7,
+         molnupiravir = if_else(treatment == 'molnupiravir',
+                                1, 0)) %>% 
+  mutate(id_obs = factor(1:nrow(data_mutations)))
+
+summary(data_mutations)
+
+data_mutations_spike <- data_mutations %>% 
+  filter(s_all == 'spike')
+
+data_mutations_all <- data_mutations %>% 
+  filter(s_all == 'all')
+
+```
+
+## Model - probability map
+
+### Initiation
+
+#### Data modification
+
+```{r}
+data_long_work <- data_long %>% 
+  mutate(PCR = if_else(PCR == 0, 40, PCR))
+
+mean(data_long_work$PCR)
+mean(data_long_work$time)
+
+data_long2 <- data_long_work %>% 
+  mutate(PCR = PCR - mean(PCR),
+         time = time - mean(time))
+```
+
+#### Berengua model
+
+```{r}
+
+data_berengua <- data_berengua %>% 
+  mutate(week_scaled = week - mean(data_long_work$time),
+         ct_scaled = ct - mean(data_long_work$PCR)) 
+
+model_berengua <- glm(viability ~ ct_scaled + week_scaled, 
+      family = binomial(link = 'logit'),
+      data = data_berengua)
+
+model_berengua_gam <- gam(viability ~ s(ct_scaled, k=4) + week_scaled, 
+      family = binomial(link = 'logit'),
+      data = data_berengua, method = 'ML')
+
+model_berengua_int <- gam(viability ~ ct_scaled*week_scaled, 
+      family = binomial(link = 'logit'),
+      data = data_berengua, method = 'ML')
+
+summary(model_berengua)
+summary(model_berengua_gam)
+summary(model_berengua_int)
+
+AIC(model_berengua, model_berengua_gam, model_berengua_int)
+```
+
+#### Priors setting
+
+```{r}
+
+prior1 <- c(
+  prior(normal(-5.5, 3.86), class = "Intercept"),
+  prior(normal(-1.04, 0.71), class = b, coef = 'PCR'),
+  prior(normal(-0.31, 0.83), class = b, coef = 'time'))
+
+prior2_weak <- c(
+  prior(normal(-5.5, 19.3), class = "Intercept"),
+  prior(normal(-1.04, 3.56), class = b, coef = 'PCR'),
+  prior(normal(-0.31, 4.17), class = b, coef = 'time'))
+```
+
+### Model fitting
+
+#### Strong prior
+
+```{r}
+model1_SP <- run(
+  expr =  brm(
+    formula = via ~ PCR + time + (1|patient_ID), 
+    data = data_long2,
+    family = bernoulli(link = 'logit'),
+    chains = 4, iter = 12000, warmup = 2000, cores = 1,
+    seed = 123,
+    control = list(adapt_delta = 0.999),
+    prior = prior1
+    ),
+  path = 'gitignore/run/model1_SP', 
+  reuse = TRUE)
+
+summary(model1_SP)
+```
+
+#### Weakly informative prior
+
+```{r}
+model2_WIP <- run(
+  expr =  brm(
+    formula = via ~ PCR + time + (1|patient_ID), 
+    data = data_long2,
+    family = bernoulli(link = 'logit'),
+    chains = 4, iter = 12000, warmup = 2000, cores = 1,
+    seed = 123,
+    control = list(adapt_delta = 0.999),
+    prior = prior2_weak
+    ),
+  path = 'gitignore/run/model2_WIP', 
+  reuse = TRUE)
+
+summary(model2_WIP)
+```
+
+#### Model comparison
+
+```{r}
+waic(model1_SP, model2_WIP)
+```
+
+### Predicted probabilities
+
+#### Getting probability from whole posterior distribution
+
+Defining new data
+
+```{r}
+PCR <- seq(min(data_long2$PCR), max(data_long2$PCR), length.out = 100)
+time <- seq(min(data_long2$time), max(data_long2$time), length.out = 100)
+
+new_data <- expand_grid(PCR, time) %>% 
+  mutate(patient_ID = NA)
+
+prediction <- function(model, newdata, ndraws){
+  save_pred <- brms::posterior_epred(model,
+                                     newdata = newdata,
+                                     ndraws = ndraws,
+                                     allow_new_level = TRUE)
+  
+  newdata <- newdata %>% 
+    mutate(probability = apply(save_pred, 
+                               2, 
+                               function(x) mean(x, na.rm = TRUE))) %>% 
+    
+    mutate(week = time + mean(data_long_work$time),
+           PCR_N_runs = PCR + mean(data_long_work$PCR)) %>% 
+    select(-patient_ID)
+  
+  return(newdata)
+}
+
+
+epred_prediction_SP <- run(
+  expr = prediction(model1_SP,
+                     new_data,
+                     10000),
+  path = 'gitignore/run/epred_prediction_SP',
+  reuse = TRUE)
+
+epred_prediction_WIP <- run(
+  expr = prediction(model2_WIP,
+                     new_data,
+                     10000),
+  path = 'gitignore/run/epred_prediction_WIP',
+  reuse = TRUE)
+```
+
+Print cycle threshold per week with probability of viability = ~ 0.05
+
+```{r}
+
+## strong prior model, whole posterior distribution taken into account
+epred_prediction_SP %>% 
+  filter( 
+    probability>0.045 & probability<0.055,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, PCR_N_runs, probability) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(PCR_N_runs))
+
+## weakly informative prior model, whole posterior distribution taken into account
+epred_prediction_WIP %>% 
+  filter( 
+    probability>0.045 & probability<0.055,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, PCR_N_runs, probability) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(PCR_N_runs))
+```
+Print cycle threshold per week with probability of viability = ~ 0.2
+
+```{r}
+## strong prior model, whole posterior distribution taken into account
+epred_prediction_SP %>% 
+  filter( 
+    probability>0.195 & probability<0.205,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, PCR_N_runs, probability) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(PCR_N_runs))
+
+## weakly informative prior model, whole posterior distribution taken into account
+epred_prediction_WIP %>% 
+  filter( 
+    probability>0.195 & probability<0.205,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, PCR_N_runs, probability) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(PCR_N_runs))
+```
+
+Print cycle threshold per week with probability of viability = ~ 0.5
+
+```{r}
+## strong prior model, whole posterior distribution taken into account
+epred_prediction_SP %>% 
+  filter( 
+    probability>0.495 & probability<0.505,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, PCR_N_runs, probability) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(PCR_N_runs))
+
+## weakly informative prior model, whole posterior distribution taken into account
+epred_prediction_WIP %>% 
+  filter( 
+    probability>0.495 & probability<0.505,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, PCR_N_runs, probability) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(PCR_N_runs))
+```
+
+#### Fitted probabilities (median posterior estimate)
+
+Generating values predicted solely on the basis of median posterior estimate, not taking into account the the uncertainty of the estimates
+
+```{r}
+new_data <- new_data %>% 
+  mutate(fitted_SP = inv_logit(fixef(model1_SP)[1,1] + 
+                              fixef(model1_SP)[2,1]*PCR + 
+                              fixef(model1_SP)[3,1]*time),
+         
+         fitted_WIP = inv_logit(fixef(model2_WIP)[1,1] + 
+                              fixef(model2_WIP)[2,1]*PCR + 
+                              fixef(model2_WIP)[3,1]*time))
+```
+
+Print cycle threshold per week with probability of viability = ~ 0.05
+
+```{r}
+## strong prior model, only median posterior estimate taken into account
+new_data %>% 
+  mutate(
+    week = time + mean(data_long_work$time),
+    Ct = PCR + mean(data_long_work$PCR)
+    ) %>% 
+  filter( 
+    fitted_SP>0.045 & fitted_SP<0.055,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, Ct, fitted_SP) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(Ct))
+
+## weakly informative prior model, only median posterior estimate taken into account
+new_data %>% 
+  mutate(
+    week = time + mean(data_long_work$time),
+    Ct = PCR + mean(data_long_work$PCR)
+    ) %>% 
+  filter( 
+    fitted_WIP>0.045 & fitted_WIP<0.055,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, Ct, fitted_WIP) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(Ct))
+
+```
+
+
+Print cycle threshold per week with probability of viability = ~ 0.2
+
+```{r}
+## strong prior model, only median posterior estimate taken into account
+new_data %>% 
+  mutate(
+    week = time + mean(data_long_work$time),
+    Ct = PCR + mean(data_long_work$PCR)
+    ) %>% 
+  filter( 
+    fitted_SP>0.18 & fitted_SP<0.222,
+      (week>0.9 & week<1.1) | 
+      (week>1.9 & week<2.1) | 
+      (week>2.9 & week<3.1) | 
+      (week>3.9 & week<4.1) | 
+      (week>4.9 & week<5.1)
+    ) %>% 
+  select(week, Ct, fitted_SP) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(Ct))
+
+## weakly informative prior model, only median posterior estimate taken into account
+new_data %>% 
+  mutate(
+    week = time + mean(data_long_work$time),
+    Ct = PCR + mean(data_long_work$PCR)
+    ) %>% 
+  filter( 
+    fitted_WIP>0.18 & fitted_WIP<0.22,
+      (week>0.9 & week<1.1) | 
+      (week>1.9 & week<2.1) | 
+      (week>2.9 & week<3.1) | 
+      (week>3.9 & week<4.1) | 
+      (week>4.9 & week<5.1)
+    ) %>% 
+  select(week, Ct, fitted_WIP) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(Ct))
+
+```
+
+
+Print cycle threshold per week with probability of viability = ~ 0.5
+
+```{r}
+## strong prior model, only median posterior estimate taken into account
+new_data %>% 
+  mutate(
+    week = time + mean(data_long_work$time),
+    Ct = PCR + mean(data_long_work$PCR)
+    ) %>% 
+  filter( 
+    fitted_SP>0.49 & fitted_SP<0.51,
+      (week>0.92 & week<1.08) | 
+      (week>1.92 & week<2.08) | 
+      (week>2.92 & week<3.08) | 
+      (week>3.92 & week<4.08) | 
+      (week>4.92 & week<5.08)
+    ) %>% 
+  select(week, Ct, fitted_SP) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(Ct))
+
+## weakly informative prior model, only median posterior estimate taken into account
+new_data %>% 
+  mutate(
+    week = time + mean(data_long_work$time),
+    Ct = PCR + mean(data_long_work$PCR)
+    ) %>% 
+  filter( 
+    fitted_WIP>0.48 & fitted_WIP<0.52,
+      (week>0.9 & week<1.1) | 
+      (week>1.9 & week<2.1) | 
+      (week>2.9 & week<3.1) | 
+      (week>3.9 & week<4.1) | 
+      (week>4.9 & week<5.1)
+    ) %>% 
+  select(week, Ct, fitted_WIP) %>% 
+  mutate(week = round(week)) %>% 
+  mutate(week = factor(week)) %>% 
+  group_by(week) %>% 
+  summarize(CT_threshold = mean(Ct))
+
+```
+### Visualization
+
+Setting plots range and breaks
+
+```{r}
+xl <- c(1/7, 5)
+yl <- c(20, 36)
+cont_breaks <- c(0.5, 0.2, 0.05)
+grey_color <- c('grey10', 'grey30', 'grey50')
+white_color <- c('grey99', 'grey84', 'grey69')
+```
+
+#### Prediction accounting uncertainity
+
+Heatmap - strong prior
+
+```{r, fig.width=7, fig.height=4.5}
+
+fig1a_SP <- epred_prediction_SP %>% 
+  mutate(Ct = PCR_N_runs) %>% 
+  ggplot(aes(x = week, y = Ct, z = probability)) +
+  geom_raster(aes(fill = probability)) +
+  scale_fill_gradient(low = 'seagreen3', high = 'red3',
+                       name = "Probability of viability") +
+  
+  geom_contour(aes(color = factor(after_stat(level))),
+               breaks = cont_breaks,
+               linewidth = 0.5) +
+
+  scale_color_manual(values = white_color,
+                     name = "Probability of viability") +
+  
+  coord_cartesian(xlim = c(xl[1], xl[2]),
+                  ylim = c(yl[1], yl[2]),
+                  expand = FALSE) +
+  guides(
+    fill = guide_colorbar(order = 1, revers = TRUE),  
+    color = guide_legend(order = 2, , title = NULL)) +
+  
+  ylab("Cycle threshold") +
+  xlab("Weeks since the symptoms onset")
+
+
+plotac <- 'fig1a_SP'
+
+get(plotac)
+path = paste0('gitignore/figures/',plotac, '.pdf')
+if(file.exists(path) == FALSE){
+  ggsave(path, 
+         plot = get(plotac), width = 7, height = 4.5, units = "in")
+}
+
+```
+
+Heatmap - weakly informative prior
+
+```{r, fig.width=7, fig.height=4.5}
+
+fig2a_WIP <- epred_prediction_WIP %>% 
+  mutate(Ct = PCR_N_runs) %>% 
+  ggplot(aes(x = week, y = Ct, z = probability)) +
+  geom_raster(aes(fill = probability)) +
+  scale_fill_gradient(low = 'seagreen3', high = 'red3',
+                       name = "Probability of viability") +
+  
+  geom_contour(aes(color = factor(after_stat(level))),
+               breaks = cont_breaks,
+               linewidth = 0.5) +
+  
+  scale_color_manual(values = white_color, 
+                     name = "Probability of viability") +
+  
+  coord_cartesian(xlim = c(xl[1], xl[2]),
+                  ylim = c(yl[1], yl[2]),
+                  expand = FALSE) +
+  
+  guides(
+    fill = guide_colorbar(order = 1, revers = TRUE),  
+    color = guide_legend(order = 2, title = NULL)) +
+  
+  ylab("Cycle threshold") +
+  xlab("Weeks since the symptoms onset")
+
+plotac <- 'fig2a_WIP'
+
+get(plotac)
+path = paste0('gitignore/figures/',plotac, '.pdf')
+if(file.exists(path) == FALSE){
+  ggsave(path, 
+         plot = get(plotac), width = 7, height = 4.5, units = "in")
+}
+```
+
+
+
+#### Fitted probabilities (median posterior estimates)
+
+Heatmap variant - strong prior
+
+```{r, fig.width=7, fig.height=4.5}
+
+fig3a_SP <- new_data %>% 
+  mutate(
+    week = time + mean(data_long_work$time),
+    Ct = PCR + mean(data_long_work$PCR)
+    ) %>% 
+  
+  ggplot(aes(x = week, y = Ct, z = fitted_SP)) +
+  geom_raster(aes(fill = fitted_SP)) +
+  
+  scale_fill_gradient(low = 'seagreen3', 
+                      high = 'red3',
+                      name = "Probability of viability") +  
+  
+  geom_contour(aes(color = factor(after_stat(level))),
+               breaks = cont_breaks,
+               linewidth = 0.5) +
+  
+  scale_color_manual(values = white_color,
+                     name = "Probability of viability") +  
+  
+  coord_cartesian(xlim = c(xl[1], xl[2]),
+                  ylim = c(yl[1], yl[2]),
+                  expand = FALSE) +
+  
+  guides(
+    fill = guide_colorbar(order = 1, revers = TRUE),  
+    color = guide_legend(order = 2, , title = NULL)) +
+  
+  theme(legend.position = "right",
+        legend.box = "vertical") +
+  ylab("Cycle threshold") +
+  xlab("Weeks since the symptoms onset")
+
+plotac <- 'fig3a_SP'
+
+get(plotac)
+ path = paste0('gitignore/figures/',plotac, '.pdf')
+ if(file.exists(path) == FALSE){
+   ggsave(path, 
+          plot = get(plotac), width = 7, height = 4.5, units = "in")
+ }
+
+```
+
+Heatmap variant - weakly informative prior
+
+```{r, fig.width=7, fig.height=4.5}
+
+fig4a_WIP <- new_data %>% 
+  
+  mutate(week = time + mean(data_long_work$time),
+         Ct = PCR + mean(data_long_work$PCR)) %>% 
+  
+  ggplot(aes(x = week, y = Ct, z = fitted_WIP)) +
+  geom_raster(aes(fill = fitted_SP)) +
+  scale_fill_gradient(low = 'seagreen3', high = 'red3',
+                       name = "Probability of viability") +
+  
+  geom_contour(aes(color = factor(after_stat(level))),
+               breaks = cont_breaks,
+               linewidth = 0.5) +
+  
+  scale_color_manual(values = white_color, 
+                     name = "Probability of viability") +
+  
+  coord_cartesian(xlim = c(xl[1], xl[2]),
+                  ylim = c(yl[1], yl[2]),
+                  expand = FALSE) +
+  
+  guides(
+    fill = guide_colorbar(order = 1, revers = TRUE),  
+    color = guide_legend(order = 2, , title = NULL)) +
+  
+  ylab("Cycle threshold") +
+  xlab("Weeks since the symptoms onset") +
+  
+  theme(legend.position = "right",
+        legend.box = "vertical")  
+
+
+
+plotac <- 'fig4a_WIP'
+
+get(plotac)
+path = paste0('gitignore/figures/',plotac, '.pdf')
+if(file.exists(path) == FALSE){
+  ggsave(path, 
+         plot = get(plotac), width = 7, height = 4.5, units = "in")
+}
+
+```
+
+### ROC curve
+
+```{r}
+data_long2 <- data_long2 %>% 
+  mutate(neg_culture = 1-via)
+
+roc_curve <- roc(factor(data_long2$neg_culture) ~ data_long2$PCR,
+                 direction = '<',
+                 quiet = TRUE)
+
+opt_tres <- coords(roc_curve, "best", ret=c("threshold"))$threshold 
+
+opt_tres + mean(data_long_work$PCR)
+
+opt_coord <- coords(roc_curve, x = opt_tres)
+opt_coord$sensitivity
+opt_coord$specificity
+
+prevalence <- mean(data_long2$neg_culture)  # Proportion of positive cases if not known
+true_negatives <- sum(data_long2$neg_culture == 0 & data_long2$PCR < opt_tres)
+false_negatives <- sum(data_long2$neg_culture == 1 & data_long2$PCR < opt_tres)
+npv <- true_negatives / (true_negatives + false_negatives)
+npv
+
+roc_data_main <- data.frame(
+  tpr = rev(roc_curve$sensitivities),   # True Positive Rate
+  fpr = rev(1 - roc_curve$specificities), # False Positive Rate
+  thresholds = rev(roc_curve$thresholds)
+)
+
+roc_currve <- ggplot(roc_data_main, aes(x = fpr, y = tpr)) +
+  geom_line(color = "blue") +
+  geom_abline(linetype = "dashed", color = "grey") +
+  labs(x = "False Positive Rate", y = "True Positive Rate") 
+
+roc_currve 
+roc_curve$auc
+```
+
+### ROC with CI
+
+```{r}
+dat_samples <- clustdat_sampler(data_long2, id_col = "patient_ID", N = 400, seed = 123)
+roc_data <- list()
+auc <- c()
+specificity <- c()
+sensitivity <- c()
+npv <- c()
+
+for(i in 1:length(dat_samples)){
+
+  roc_curve <- roc(dat_samples[[i]]$neg_culture ~ dat_samples[[i]]$PCR,
+                   direction = '<',
+                   quiet = TRUE)
+
+  roc_data[[i]] <- data.frame(
+    tpr = rev(roc_curve$sensitivities),   # True Positive Rate
+    fpr = rev(1 - roc_curve$specificities), # False Positive Rate
+    thresholds = rev(roc_curve$thresholds))
+
+  auc[i] <- roc_curve$auc
+  
+  opt_coord <- coords(roc_curve, x = opt_tres)
+  sensitivity[i] <- opt_coord$sensitivity
+  specificity[i] <- opt_coord$specificity
+  
+  prevalence <- mean(dat_samples[[i]]$neg_culture)  
+  true_negatives <- sum(dat_samples[[i]]$neg_culture == 0 & dat_samples[[i]]$PCR < opt_tres)
+  false_negatives <- sum(dat_samples[[i]]$neg_culture == 1 & dat_samples[[i]]$PCR < opt_tres)
+  npv[i] <- true_negatives / (true_negatives + false_negatives)
+}
+
+roc_data_main <- roc_data_main %>% 
+  mutate(list_i = 1)
+
+roc_data <- bind_rows(roc_data, .id = "list_i") %>%
+  mutate(list_i = factor(list_i))
+
+auc_ci <- round(quantile(auc, probs = c(0.025, 0.975)),2)
+roc_curve$auc <- round(roc_curve$auc, 2)
+
+roc_currve <- ggplot(roc_data, aes(x = fpr, y = tpr, by = list_i)) +
+  geom_line(color = 'skyblue2', alpha = 0.3) +
+  geom_line(data = roc_data_main, 
+            aes(x = fpr, y = tpr), 
+            color = 'blue') +
+  geom_abline(linetype = "dashed", color = "grey") +
+  labs(x = "False Positive Rate", y = "True Positive Rate") +
+  annotate("text", 
+           x = 0.53, 
+           y = 0.06, 
+           label = paste0("AUC = ", roc_curve$auc, " [", auc_ci[1], " to ", auc_ci[2], "]"), 
+           size = 3, 
+           color = "blue")
+  
+
+
+roc_currve 
+
+## AUC
+quantile(auc, probs = c(0.025, 0.975))
+
+## sensitivity
+quantile(sensitivity, probs = c(0.025, 0.975))
+
+## specificity
+quantile(specificity, probs = c(0.025, 0.975))
+
+## negative predictive value
+quantile(npv, probs = c(0.025, 0.975))
+```
+
+### ROC - fitted probability plot combo
+
+```{r, fig.height=4, fig.width=8}
+#| fig.cap: 'Figure. Prediction of negative culture based on cycle threshold. (A) ROC curve (thick line) and 400 simulated ROC curves from cluster bootstrap (tiny transparent lines). AUC = area under the ROC curve [95% confidence interval]. (B) Heatmap showing fitted probability of viable virus based on time after symptoms onset and the cycle threshold. The probability was obtained from hierarchical logistic Bayesian regression. Fitted probabilities were obtained from median posterior estimates, i.e. uncertainity in parameters estimation was not taken into account. See methods for details'
+
+roc_fitprob_combo <- plot_grid(roc_currve, fig3a_SP, 
+          rel_widths = c(0.5, 1),
+          labels = c("A", "B"))
+
+plotac <- 'roc_fitprob_combo'
+
+get(plotac)
+ path = paste0('gitignore/figures/',plotac, '.pdf')
+ if(file.exists(path) == FALSE){
+   ggsave(path, 
+          plot = get(plotac), 
+          width = 8, height = 4, units = "in")
+ }
+```
+
+### ROC - probability (whole posterior) plot combo
+
+```{r, fig.height=4, fig.width=8}
+#| fig.cap: 'Figure. Prediction of negative culture based on cycle threshold. (A) ROC curve (thick line) and 400 simulated ROC curves from cluster bootstrap (tiny transparent lines). AUC = area under the ROC curve [95% confidence interval]. (B) Heatmap showing fitted probability of viable virus based on time after symptoms onset and the cycle threshold. The proabability was obtained from hierarchical logistic Bayesian regression using the whole posterior distribution, taking into account model uncertainity. See methods for details'
+
+
+roc_prob_combo <- plot_grid(roc_currve, fig1a_SP, 
+          rel_widths = c(0.5, 1),
+          labels = c("A", "B"))
+
+plotac <- 'roc_prob_combo'
+
+get(plotac)
+ path = paste0('gitignore/figures/',plotac, '.pdf')
+ if(file.exists(path) == FALSE){
+   ggsave(path, 
+          plot = get(plotac), 
+          width = 8, height = 4, units = "in")
+ }
+```
+
+
+
+## Univariable models
+
+### Data exploration
+
+#### Disribution of outcomes
+
+```{r}
+p1 <- data %>% 
+  ggplot(aes(x = symptoms_neg_PCR_days)) + 
+  geom_histogram()
+
+p2 <- data %>% 
+  ggplot(aes(x = symptoms_neg_viability_days)) + 
+  geom_histogram()
+
+plot_grid(p1, p2)
+```
+
+#### Summary table
+
+```{r}
+data %>% tbl_summary(
+    type = list(PRA ~ "continuous")) %>%
+  modify_caption("Patient characteristics")
+```
+
+
+### Running GLM-NB models
+
+#### Function to run all models
+
+```{r, message=FALSE}
+
+run_perm <- function(predictors_vector, outcome, data){
+  
+  b_coef <- vector('double', length(predictors_vector))
+  CI_L <- vector('double', length(predictors_vector))
+  CI_U <- vector('double', length(predictors_vector))
+  P_parametric <- vector('double', length(predictors_vector))
+  P_permutation <- vector('double', length(predictors_vector)) 
+  
+  for (i in 1:length(predictors_vector)){
+    
+    pred <- data[, predictors_vector[i]]
+    out <- data[, outcome]
+    
+    model <- glm.nb(out ~ pred, 
+                    data = data)
+    
+    permP <- perm_model(model, nsim = 5000)
+    
+    b_coef[i] <- coef(model)[2]
+    CI_L[i] <- confint(model)[2,1]
+    CI_U[i] <- confint(model)[2,2]
+    P_parametric[i] <- summary(model)$coefficients[2, 4]
+    P_permutation[i] <- permP[2]
+  }
+  results <- data.frame(
+    Predictor = predictors_vector,
+    b_coef, CI_L, CI_U, P_parametric, P_permutation
+  )
+  
+  return(results)
+  
+}
+```
+
+#### Days of PCR positive
+
+```{r, message=FALSE}
+res_PCR <- run(
+  expr = run_perm(names(data)[1:14], 'symptoms_neg_PCR_days', data),
+  path = 'gitignore/run/res_PCR',
+  reuse = TRUE)
+
+res_PCR[, 2:4] <- round(res_PCR[, 2:4], 3)
+res_PCR[, 5:6] <- round(res_PCR[, 5:6], 4)
+kableExtra::kable(res_PCR)
+
+if(file.exists('gitignore/outputs/res_PCR.xlsx') == FALSE){
+  write.xlsx(res_PCR, 'gitignore/outputs/res_PCR.xlsx')
+}
+```
+
+#### Days of viable virus
+
+```{r, message=FALSE}
+res_viability <- run(
+  expr = run_perm(names(data)[1:14], 'symptoms_neg_viability_days', data),
+  path = 'gitignore/run/res_viability',
+  reuse = TRUE)
+
+res_viability[, 2:4] <- round(res_viability[, 2:4], 3)
+res_viability[, 5:6] <- round(res_viability[, 5:6], 4)
+kableExtra::kable(res_viability)
+
+if(file.exists('gitignore/outputs/res_viability.xlsx') == FALSE){
+  write.xlsx(res_PCR, 'gitignore/outputs/res_viability.xlsx')
+}
+```
+
+## COVID mutations over time
+
+### Priors
+
+#### Calculations to get prior
+
+```{r}
+2*2*sd(data_mutations$week)
+
+## check
+(5.73/2)*sd(rescale(data_mutations$week))
+sd(data_mutations$week)
+```
+
+#### Priors specification
+
+```{r}
+prior4_weakly_regularizing <- c(
+  prior(normal(4, 5), class = "Intercept"),
+  #prior(exponential(1), class = "sd", group = "Patient.ID"),
+  #prior(exponential(1), class = "sd", group = "id_obs"),
+  prior(normal(0, 5.73), class = b, coef = 'week'),
+  prior(normal(0.1, 2), class = b, coef = 'molnupiravir'),
+  prior(normal(0, 0.5), class = b, coef = 'week:molnupiravir')
+  )
+
+prior4_wide <- c(
+  prior(normal(4, 10), class = "Intercept"),
+  prior(exponential(1), class = "sd", group = "Patient.ID"),
+  prior(normal(0, 29), class = b, coef = 'week'),
+  prior(normal(0.1, 10), class = b, coef = 'molnupiravir'),
+  prior(normal(0, 2.5), class = b, coef = 'week:molnupiravir'))
+
+
+
+```
+
+### f_05 all mutations model
+
+#### Fitting and summary
+
+```{r}
+data <- data_mutations_all
+data <- data %>% mutate(outcome = f_05)
+model <- 'mutfreBM_all05_wr'
+
+assign(model, run(
+  
+  expr = brm(outcome ~ week + 
+               molnupiravir +
+               week:molnupiravir +
+               (1|Patient.ID) +
+               (1|id_obs),
+             family = poisson(),
+             data = data,
+             chains = 4, cores = 4,
+             iter = 12000, warmup = 2000,
+             seed = 123,
+             backend = "cmdstanr",
+             control = list(adapt_delta = 0.999999,
+                            max_treedepth = 15),
+             prior = prior4_weakly_regularizing),
+  path = paste0('gitignore/run/', model), 
+  reuse = TRUE))
+
+summary(get(model))
+prior_summary(get(model))
+```
+
+#### Posterior check
+
+```{r}
+pp_check(get(model), 
+         type = 'dens_overlay_grouped',
+         group = 'molnupiravir',
+         ndraws = 50)
+
+pp_check(get(model), 
+         type = 'dens_overlay',
+         ndraws = 50)
+```
+
+#### Results exploration
+
+```{r}
+exp(fixef(get(model))[-1,c(1,3,4)])
+
+draws <- as_draws_df(get(model)) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week)
+
+## 95% credible interval for week effect in molnupiravir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_molnupiravir, 0.025)),
+        p97.5 = exp(quantile(week_molnupiravir, 0.975))
+    )
+
+## 95% credible interval for week effect in remdesivir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_remdesivir, 0.025)),
+        p97.5 = exp(quantile(week_remdesivir, 0.975))
+    )
+
+## 95% credible interval between-treatment difference 
+## (difference in 1 week log-fold-changes between the two treatment groups)
+draws%>%
+    summarize(
+        p2.5 = quantile(`b_week:molnupiravir`, 0.025),
+        p97.5 = quantile(`b_week:molnupiravir`, 0.975)
+    )
+```
+
+### f_5 all mutations model
+
+#### Fitting and summary
+
+```{r}
+data <- data_mutations_all
+data <- data %>% mutate(outcome = f_5)
+model <- 'mutfreBM_all5_wr'
+
+assign(model, run(
+  
+  expr = brm(outcome ~ week + 
+               molnupiravir +
+               week:molnupiravir +
+               (1|Patient.ID) +
+               (1|id_obs),
+             family = poisson(),
+             data = data,
+             chains = 4, cores = 4,
+             iter = 12000, warmup = 2000,
+             seed = 123,
+             backend = "cmdstanr",
+             control = list(adapt_delta = 0.999999,
+                            max_treedepth = 15),
+             prior = prior4_weakly_regularizing),
+  path = paste0('gitignore/run/', model), 
+  reuse = TRUE))
+
+summary(get(model))
+prior_summary(get(model))
+```
+
+#### Posterior check
+
+```{r}
+pp_check(get(model), 
+         type = 'dens_overlay_grouped',
+         group = 'molnupiravir',
+         ndraws = 50)
+
+pp_check(get(model), 
+         type = 'dens_overlay',
+         ndraws = 50)
+```
+
+#### Results exploration
+
+```{r}
+exp(fixef(get(model))[-1,c(1,3,4)])
+
+draws <- as_draws_df(get(model)) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week)
+
+## 95% credible interval for week effect in molnupiravir group
+## (fold change per week)
+draws %>%
+    summarize(
+        p2.5 = exp(quantile(week_molnupiravir, 0.025)),
+        p97.5 = exp(quantile(week_molnupiravir, 0.975))
+    )
+
+## 95% credible interval for week effect in remdesivir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_remdesivir, 0.025)),
+        p97.5 = exp(quantile(week_remdesivir, 0.975))
+    )
+
+## 95% credible interval between-treatment difference 
+## (difference in week log-ratios between treatment groups)
+draws %>%
+    summarize(
+        p2.5 = quantile(`b_week:molnupiravir`, 0.025),
+        p97.5 = quantile(`b_week:molnupiravir`, 0.975)
+    )
+```
+
+### f_50 all mutations model
+
+#### Fitting and summary
+
+```{r}
+data <- data_mutations_all
+data <- data %>% mutate(outcome = f_50)
+model <- 'mutfreBM_all50_wr'
+
+assign(model, run(
+  
+  expr = brm(outcome ~ week + 
+               molnupiravir +
+               week:molnupiravir +
+               (1|Patient.ID) +
+               (1|id_obs),
+             family = poisson(),
+             data = data,
+             chains = 4, cores = 4,
+             iter = 12000, warmup = 2000,
+             seed = 123,
+             backend = "cmdstanr",
+             control = list(adapt_delta = 0.999999,
+                            max_treedepth = 15),
+             prior = prior4_weakly_regularizing),
+  path = paste0('gitignore/run/', model), 
+  reuse = TRUE))
+
+summary(get(model))
+prior_summary(get(model))
+```
+
+#### Posterior check
+
+```{r}
+pp_check(get(model), 
+         type = 'dens_overlay_grouped',
+         group = 'molnupiravir',
+         ndraws = 50)
+
+pp_check(get(model), 
+         type = 'dens_overlay',
+         ndraws = 50)
+```
+
+#### Results exploration
+
+```{r}
+exp(fixef(get(model))[-1,c(1,3,4)])
+
+draws <- as_draws_df(get(model)) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week)
+
+## 95% credible interval for week effect in molnupiravir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_molnupiravir, 0.025)),
+        p97.5 = exp(quantile(week_molnupiravir, 0.975))
+    )
+
+## 95% credible interval for week effect in remdesivir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_remdesivir, 0.025)),
+        p97.5 = exp(quantile(week_remdesivir, 0.975))
+    )
+
+## 95% credible interval between-treatment difference 
+## (difference in week log-ratios between treatment groups)
+draws%>%
+    summarize(
+        p2.5 = quantile(`b_week:molnupiravir`, 0.025),
+        p97.5 = quantile(`b_week:molnupiravir`, 0.975)
+    )
+```
+
+### f_05 spike mutations model
+
+#### Fitting and summary
+
+```{r}
+data <- data_mutations_spike
+data <- data %>% mutate(outcome = f_05)
+model <- 'mutfreBM_spike05_wr'
+
+assign(model, run(
+  
+  expr = brm(outcome ~ week + 
+               molnupiravir +
+               week:molnupiravir +
+               (1|Patient.ID) +
+               (1|id_obs),
+             family = poisson(),
+             data = data,
+             chains = 4, cores = 4,
+             iter = 12000, warmup = 2000,
+             seed = 123,
+             backend = "cmdstanr",
+             control = list(adapt_delta = 0.999999,
+                            max_treedepth = 15),
+             prior = prior4_weakly_regularizing),
+  path = paste0('gitignore/run/', model), 
+  reuse = TRUE))
+
+summary(get(model))
+prior_summary(get(model))
+```
+
+#### Posterior check
+
+```{r}
+pp_check(get(model), 
+         type = 'dens_overlay_grouped',
+         group = 'molnupiravir',
+         ndraws = 50)
+
+pp_check(get(model), 
+         type = 'dens_overlay',
+         ndraws = 50)
+```
+
+#### Results exploration
+
+```{r}
+exp(fixef(get(model))[-1,c(1,3,4)])
+
+draws <- as_draws_df(get(model)) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week)
+
+## 95% credible interval for week effect in molnupiravir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_molnupiravir, 0.025)),
+        p97.5 = exp(quantile(week_molnupiravir, 0.975))
+    )
+
+## 95% credible interval for week effect in remdesivir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_remdesivir, 0.025)),
+        p97.5 = exp(quantile(week_remdesivir, 0.975))
+    )
+
+## 95% credible interval between-treatment difference 
+## (difference in week log-ratios between treatment groups)
+draws%>%
+    summarize(
+        p2.5 = quantile(`b_week:molnupiravir`, 0.025),
+        p97.5 = quantile(`b_week:molnupiravir`, 0.975)
+    )
+```
+
+### f_5 spike mutations model
+
+#### Fitting and summary
+
+```{r}
+data <- data_mutations_spike
+data <- data %>% mutate(outcome = f_5)
+model <- 'mutfreBM_spike5_wr'
+
+assign(model, run(
+  
+  expr = brm(outcome ~ week + 
+               molnupiravir +
+               week:molnupiravir +
+               (1|Patient.ID) +
+               (1|id_obs),
+             family = poisson(),
+             data = data,
+             chains = 4, cores = 4,
+             iter = 12000, warmup = 2000,
+             seed = 123,
+             backend = "cmdstanr",
+             control = list(adapt_delta = 0.999999,
+                            max_treedepth = 15),
+             prior = prior4_weakly_regularizing),
+  path = paste0('gitignore/run/', model), 
+  reuse = TRUE))
+
+summary(get(model))
+prior_summary(get(model))
+```
+
+#### Posterior check
+
+```{r}
+pp_check(get(model), 
+         type = 'dens_overlay_grouped',
+         group = 'molnupiravir',
+         ndraws = 50)
+
+pp_check(get(model), 
+         type = 'dens_overlay',
+         ndraws = 50)
+```
+
+#### Results exploration
+
+```{r}
+exp(fixef(get(model))[-1,c(1,3,4)])
+
+draws <- as_draws_df(get(model)) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week)
+
+## 95% credible interval for week effect in molnupiravir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_molnupiravir, 0.025)),
+        p97.5 = exp(quantile(week_molnupiravir, 0.975))
+    )
+
+## 95% credible interval for week effect in remdesivir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_remdesivir, 0.025)),
+        p97.5 = exp(quantile(week_remdesivir, 0.975))
+    )
+
+## 95% credible interval between-treatment difference 
+## (difference in week log-ratios between treatment groups)
+draws %>%
+    summarize(
+        p2.5 = quantile(`b_week:molnupiravir`, 0.025),
+        p97.5 = quantile(`b_week:molnupiravir`, 0.975)
+    )
+```
+
+### f_50 spike mutations model
+
+#### Fitting and summary
+
+```{r}
+data <- data_mutations_spike
+data <- data %>% mutate(outcome = f_50)
+model <- 'mutfreBM_spike50_wr'
+
+assign(model, run(
+  
+  expr = brm(outcome ~ week + 
+               molnupiravir +
+               week:molnupiravir +
+               (1|Patient.ID) +
+               (1|id_obs),
+             family = poisson(),
+             data = data,
+             chains = 4, cores = 4,
+             iter = 12000, warmup = 2000,
+             seed = 123,
+             backend = "cmdstanr",
+             control = list(adapt_delta = 0.999999,
+                            max_treedepth = 15),
+             prior = prior4_weakly_regularizing),
+  path = paste0('gitignore/run/', model), 
+  reuse = TRUE))
+
+summary(get(model))
+prior_summary(get(model))
+```
+
+#### Posterior check
+
+```{r}
+pp_check(get(model), 
+         type = 'dens_overlay_grouped',
+         group = 'molnupiravir',
+         ndraws = 50)
+
+pp_check(get(model), 
+         type = 'dens_overlay',
+         ndraws = 50)
+```
+
+#### Results exploration
+
+```{r}
+exp(fixef(get(model))[-1,c(1,3,4)])
+
+draws <- as_draws_df(get(model)) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week)
+
+## 95% credible interval for week effect in molnupiravir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_molnupiravir, 0.025)),
+        p97.5 = exp(quantile(week_molnupiravir, 0.975))
+    )
+
+## 95% credible interval for week effect in remdesivir group
+## (fold change per week)
+draws%>%
+    summarize(
+        p2.5 = exp(quantile(week_remdesivir, 0.025)),
+        p97.5 = exp(quantile(week_remdesivir, 0.975))
+    )
+
+## 95% credible interval between-treatment difference 
+## (difference in week log-ratios between treatment groups)
+draws%>%
+    summarize(
+        p2.5 = quantile(`b_week:molnupiravir`, 0.025),
+        p97.5 = quantile(`b_week:molnupiravir`, 0.975)
+    )
+```
+
+### Table of mutations over time
+
+#### Whole genome
+
+```{r}
+draws_all50_wr <- as_draws_df(mutfreBM_all50_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  summarize(
+        est_wm = exp(quantile(week_molnupiravir, 0.5)),
+        CIL_wm = exp(quantile(week_molnupiravir, 0.025)),
+        CIP_wm = exp(quantile(week_molnupiravir, 0.975)),
+        
+        est_wr = exp(quantile(week_remdesivir, 0.5)),
+        CIL_wr = exp(quantile(week_remdesivir, 0.025)),
+        CIP_wr = exp(quantile(week_remdesivir, 0.975)),
+        
+        est_int = exp(quantile(`b_week:molnupiravir`, 0.5)),
+        CIL_int = exp(quantile(`b_week:molnupiravir`, 0.025)),
+        CIP_int = exp(quantile(`b_week:molnupiravir`, 0.975))
+    )
+
+draws_all5_wr <- as_draws_df(mutfreBM_all5_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  summarize(
+        est_wm = exp(quantile(week_molnupiravir, 0.5)),
+        CIL_wm = exp(quantile(week_molnupiravir, 0.025)),
+        CIP_wm = exp(quantile(week_molnupiravir, 0.975)),
+        
+        est_wr = exp(quantile(week_remdesivir, 0.5)),
+        CIL_wr = exp(quantile(week_remdesivir, 0.025)),
+        CIP_wr = exp(quantile(week_remdesivir, 0.975)),
+        
+        est_int = exp(quantile(`b_week:molnupiravir`, 0.5)),
+        CIL_int = exp(quantile(`b_week:molnupiravir`, 0.025)),
+        CIP_int = exp(quantile(`b_week:molnupiravir`, 0.975))
+    )
+
+draws_all05_wr <- as_draws_df(mutfreBM_all05_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  summarize(
+        est_wm = exp(quantile(week_molnupiravir, 0.5)),
+        CIL_wm = exp(quantile(week_molnupiravir, 0.025)),
+        CIP_wm = exp(quantile(week_molnupiravir, 0.975)),
+        
+        est_wr = exp(quantile(week_remdesivir, 0.5)),
+        CIL_wr = exp(quantile(week_remdesivir, 0.025)),
+        CIP_wr = exp(quantile(week_remdesivir, 0.975)),
+        
+        est_int = exp(quantile(`b_week:molnupiravir`, 0.5)),
+        CIL_int = exp(quantile(`b_week:molnupiravir`, 0.025)),
+        CIP_int = exp(quantile(`b_week:molnupiravir`, 0.975))
+    )
+
+effects = c('1-week FC in molnupiravir',
+              '1-week FC in remdesivir',
+              'molnupiravir/remdesivir (ratio of FCs)')
+
+f50tab  <- data.frame(
+  FC = as.numeric(draws_all50_wr[seq(1, 9, 3)]),
+  CI_L = as.numeric(draws_all50_wr[seq(2, 9, 3)]),
+  CI_U = as.numeric(draws_all50_wr[seq(3, 9, 3)]))
+
+f5tab  <- data.frame(  
+  FC = as.numeric(draws_all5_wr[seq(1, 9, 3)]),
+  CI_L = as.numeric(draws_all5_wr[seq(2, 9, 3)]),
+  CI_U = as.numeric(draws_all5_wr[seq(3, 9, 3)]))
+  
+f05tab  <- data.frame(
+  FC = as.numeric(draws_all05_wr[seq(1, 9, 3)]),
+  CI_L = as.numeric(draws_all05_wr[seq(2, 9, 3)]),
+  CI_U = as.numeric(draws_all05_wr[seq(3, 9, 3)]))
+
+all_table <- cbind(f50tab, f5tab, f05tab)
+
+all_table[,c(1:9)] <- round(all_table[,c(1:9)], 2)
+
+row.names(all_table) <- effects
+
+all_table_html <- kbl(all_table, caption = 
+      "Table X. Estimated 1-week fold-change (FC) in whole-genome mutations numbers over time, separately for different treatment (rows 1 and 2), and ratio between FCs of different treatment groups (molnupiravir/remdesivir; row 3). CI_L and CI_U show bounds of the 95% credible interval. Values of 1 imply null effect. Estimates are based on a Bayesian hierarchical generalized linear model with a Poisson distribution and weakly informative (slightly regularizing) priors. See methods for details") %>% 
+  kable_styling("striped",full_width = T) %>% 
+  add_header_above(c(" " = 1, "Frequency >50%" = 3, 
+                     "Frequency >5%" = 3, "Frequency >0.5%" = 3)) %>% 
+  add_header_above(c("Whole genome ICVs" = 10)) %>% 
+  column_spec(1, width_min = '2.4in')
+
+all_table_html
+
+```
+
+#### Spike protein
+
+```{r}
+draws_spike50_wr <- as_draws_df(mutfreBM_spike50_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  summarize(
+        est_wm = exp(quantile(week_molnupiravir, 0.5)),
+        CIL_wm = exp(quantile(week_molnupiravir, 0.025)),
+        CIP_wm = exp(quantile(week_molnupiravir, 0.975)),
+        
+        est_wr = exp(quantile(week_remdesivir, 0.5)),
+        CIL_wr = exp(quantile(week_remdesivir, 0.025)),
+        CIP_wr = exp(quantile(week_remdesivir, 0.975)),
+        
+        est_int = exp(quantile(`b_week:molnupiravir`, 0.5)),
+        CIL_int = exp(quantile(`b_week:molnupiravir`, 0.025)),
+        CIP_int = exp(quantile(`b_week:molnupiravir`, 0.975))
+    )
+
+draws_spike5_wr <- as_draws_df(mutfreBM_spike5_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  summarize(
+        est_wm = exp(quantile(week_molnupiravir, 0.5)),
+        CIL_wm = exp(quantile(week_molnupiravir, 0.025)),
+        CIP_wm = exp(quantile(week_molnupiravir, 0.975)),
+        
+        est_wr = exp(quantile(week_remdesivir, 0.5)),
+        CIL_wr = exp(quantile(week_remdesivir, 0.025)),
+        CIP_wr = exp(quantile(week_remdesivir, 0.975)),
+        
+        est_int = exp(quantile(`b_week:molnupiravir`, 0.5)),
+        CIL_int = exp(quantile(`b_week:molnupiravir`, 0.025)),
+        CIP_int = exp(quantile(`b_week:molnupiravir`, 0.975))
+    )
+
+draws_spike05_wr <- as_draws_df(mutfreBM_spike05_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  summarize(
+        est_wm = exp(quantile(week_molnupiravir, 0.5)),
+        CIL_wm = exp(quantile(week_molnupiravir, 0.025)),
+        CIP_wm = exp(quantile(week_molnupiravir, 0.975)),
+        
+        est_wr = exp(quantile(week_remdesivir, 0.5)),
+        CIL_wr = exp(quantile(week_remdesivir, 0.025)),
+        CIP_wr = exp(quantile(week_remdesivir, 0.975)),
+        
+        est_int = exp(quantile(`b_week:molnupiravir`, 0.5)),
+        CIL_int = exp(quantile(`b_week:molnupiravir`, 0.025)),
+        CIP_int = exp(quantile(`b_week:molnupiravir`, 0.975))
+    )
+
+effects = c('1-week FC in molnupiravir',
+              '1-week FC in remdesivir',
+              'molnupiravir/remdesivir (ratio of FCs)')
+
+f50tab  <- data.frame(
+  FC = as.numeric(draws_spike50_wr[seq(1, 9, 3)]),
+  CI_L = as.numeric(draws_spike50_wr[seq(2, 9, 3)]),
+  CI_U = as.numeric(draws_spike50_wr[seq(3, 9, 3)]))
+
+f5tab  <- data.frame(  
+  FC = as.numeric(draws_spike5_wr[seq(1, 9, 3)]),
+  CI_L = as.numeric(draws_spike5_wr[seq(2, 9, 3)]),
+  CI_U = as.numeric(draws_spike5_wr[seq(3, 9, 3)]))
+  
+f05tab  <- data.frame(
+  FC = as.numeric(draws_spike05_wr[seq(1, 9, 3)]),
+  CI_L = as.numeric(draws_spike05_wr[seq(2, 9, 3)]),
+  CI_U = as.numeric(draws_spike05_wr[seq(3, 9, 3)]))
+
+spike_table <- cbind(f50tab, f5tab, f05tab)
+
+spike_table[,c(1:9)] <- round(spike_table[,c(1:9)], 2)
+
+row.names(spike_table) <- effects
+
+spike_table_html <- kbl(spike_table, caption = 
+      "Table XX. Estimated 1-week fold-change (FC) in spike protein mutations numbers over time, separately for different treatment (rows 1 and 2), and ratio between FCs of different treatment groups (molnupiravir/remdesivir; row 3). CI_L and CI_U show bounds of the 95% credible interval. Values of 1 imply null effect. Estimates are based on a Bayesian hierarchical generalized linear model with a Poisson distribution and weakly informative (slightly regularizing) priors. See methods for details") %>% 
+  kable_styling("striped",full_width = T) %>% 
+  add_header_above(c(" " = 1, "Frequency >50%" = 3, 
+                     "Frequency >5%" = 3, "Frequency >0.5%" = 3)) %>% 
+  add_header_above(c("Spike protein ICVs" = 10)) %>% 
+  column_spec(1, width_min = '2.4in')
+
+spike_table_html
+```
+
+### Individual figures
+
+#### Whole genome, >50%
+
+```{r, warning=FALSE}
+time <- seq(0, 5, length.out = 100)
+
+draws <- as_draws_df(mutfreBM_all50_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  select(week_molnupiravir, week_remdesivir, b_molnupiravir, b_Intercept)
+
+
+remd <- data.frame()
+for(i in 1:length(time)){
+    remd[1:40000,i] <-  draws$b_Intercept + draws$week_remdesivir*time[i]}
+
+remd  <- sapply(remd , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+moln <- data.frame()
+for(i in 1:length(time)){
+    moln[1:40000,i] <-  draws$b_Intercept + draws$b_molnupiravir +
+      draws$week_molnupiravir*time[i]}
+
+moln  <- sapply(moln , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+
+predict <- data.frame(
+  prediction = 
+    unlist(c(
+      exp(remd[3,]),  exp(moln[3,])
+      )), 
+   cil = 
+    unlist(c(
+      exp(remd[1,]),  exp(moln[1,])
+      )), 
+    ciu = 
+    unlist(c(
+      exp(remd[2,]), exp(moln[2,]) 
+             )),
+  time = rep(time, 2),  
+  treatment = c(
+    rep("remdesivir", 100),  rep("molnupiravir",100)
+    ))
+
+## figure
+
+cole <- c("#FF00FF", "#01AF40")
+
+fig_01a <- ggplot() +
+  
+  geom_line(data = predict, aes(x = time, 
+                                y = prediction, 
+                                group = treatment,
+                                color = treatment), size=1.05) +
+  geom_ribbon(data = predict, 
+              aes(x = time, ymin = cil, ymax = ciu, fill = treatment), 
+              alpha = 0.25, color = NA) +
+  
+  geom_line(data = data_mutations_all, 
+            aes(x = week, y = f_50, group = Patient.ID), 
+            alpha = 0.8, color = 'grey30', size = 0.15,
+            method = 'lm', se=FALSE) +
+  
+  scale_color_manual(values = cole) +
+  scale_fill_manual(values = cole) +
+  labs(x = "Weeks", y = 'Mutations counts') +
+  facet_wrap(~treatment, ncol = 2) +
+  ggtitle("Whole genome, >50%") +
+  theme(plot.title = element_text(size = 11), axis.text.y = element_text(size = 9))
+
+fig_01a
+```
+
+#### Whole genome, >5%
+
+```{r, warning=FALSE}
+time <- seq(0, 5, length.out = 100)
+
+draws <- as_draws_df(mutfreBM_all5_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  select(week_molnupiravir, week_remdesivir, b_molnupiravir, b_Intercept)
+
+
+remd <- data.frame()
+for(i in 1:length(time)){
+    remd[1:40000,i] <-  draws$b_Intercept + draws$week_remdesivir*time[i]}
+
+remd  <- sapply(remd , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+moln <- data.frame()
+for(i in 1:length(time)){
+    moln[1:40000,i] <-  draws$b_Intercept + draws$b_molnupiravir +
+      draws$week_molnupiravir*time[i]}
+
+moln  <- sapply(moln , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+
+predict <- data.frame(
+  prediction = 
+    unlist(c(
+      exp(remd[3,]),  exp(moln[3,])
+      )), 
+   cil = 
+    unlist(c(
+      exp(remd[1,]),  exp(moln[1,])
+      )), 
+    ciu = 
+    unlist(c(
+      exp(remd[2,]), exp(moln[2,]) 
+             )),
+  time = rep(time, 2),  
+  treatment = c(
+    rep("remdesivir", 100),  rep("molnupiravir",100)
+    ))
+
+## figure
+
+cole <- c("#FF00FF", "#01AF40")
+
+fig_01b <- ggplot() +
+  
+  geom_line(data = predict, aes(x = time, 
+                                y = prediction, 
+                                group = treatment,
+                                color = treatment), size=1.05) +
+  geom_ribbon(data = predict, 
+              aes(x = time, ymin = cil, ymax = ciu, fill = treatment), 
+              alpha = 0.25, color = NA) +
+  
+  geom_line(data = data_mutations_all, 
+            aes(x = week, y = f_5, group = Patient.ID), 
+            alpha = 0.8, color = 'grey30', size = 0.15,
+            method = 'glm', se=FALSE,
+            method.args=list(family="poisson")) +
+  
+  scale_color_manual(values = cole) +
+  scale_fill_manual(values = cole) +
+  labs(x = "Weeks", y = 'Mutations counts') +
+  facet_wrap(~treatment, ncol = 2) +
+  ggtitle("Whole genome, >5%") +
+  theme(plot.title = element_text(size = 11), axis.text.y = element_text(size = 9)) 
+
+fig_01b
+```
+
+
+#### Whole genome, >0.5%
+
+```{r, warning=FALSE}
+time <- seq(0, 5, length.out = 100)
+
+draws <- as_draws_df(mutfreBM_all05_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  select(week_molnupiravir, week_remdesivir, b_molnupiravir, b_Intercept)
+
+
+remd <- data.frame()
+for(i in 1:length(time)){
+    remd[1:40000,i] <-  draws$b_Intercept + draws$week_remdesivir*time[i]}
+
+remd  <- sapply(remd , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+moln <- data.frame()
+for(i in 1:length(time)){
+    moln[1:40000,i] <-  draws$b_Intercept + draws$b_molnupiravir +
+      draws$week_molnupiravir*time[i]}
+
+moln  <- sapply(moln , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+
+predict <- data.frame(
+  prediction = 
+    unlist(c(
+      exp(remd[3,]),  exp(moln[3,])
+      )), 
+   cil = 
+    unlist(c(
+      exp(remd[1,]),  exp(moln[1,])
+      )), 
+    ciu = 
+    unlist(c(
+      exp(remd[2,]), exp(moln[2,]) 
+             )),
+  time = rep(time, 2),  
+  treatment = c(
+    rep("remdesivir", 100),  rep("molnupiravir",100)
+    ))
+
+## figure
+
+cole <- c("#FF00FF", "#01AF40")
+
+fig_01c <- ggplot() +
+  
+  geom_line(data = predict, aes(x = time, 
+                                y = prediction, 
+                                group = treatment,
+                                color = treatment), size=1.05) +
+  geom_ribbon(data = predict, 
+              aes(x = time, ymin = cil, ymax = ciu, fill = treatment), 
+              alpha = 0.25, color = NA) +
+  
+  geom_line(data = data_mutations_all, 
+            aes(x = week, y = f_05, group = Patient.ID), 
+            alpha = 0.8, color = 'grey30', size = 0.15,
+            method = 'glm', se=FALSE,
+            method.args=list(family="poisson")) +
+  
+  scale_color_manual(values = cole) +
+  scale_fill_manual(values = cole) +
+  labs(x = "Weeks", y = 'Mutations counts') +
+  facet_wrap(~treatment, ncol = 2)+
+  ggtitle("Whole genome, >0.5%") +
+  theme(plot.title = element_text(size = 11), axis.text.y = element_text(size = 9))
+
+fig_01c
+```
+
+#### Spike protein, >50%
+
+```{r, warning=FALSE}
+time <- seq(0, 5, length.out = 100)
+
+draws <- as_draws_df(mutfreBM_spike50_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  select(week_molnupiravir, week_remdesivir, b_molnupiravir, b_Intercept)
+
+
+remd <- data.frame()
+for(i in 1:length(time)){
+    remd[1:40000,i] <-  draws$b_Intercept + draws$week_remdesivir*time[i]}
+
+remd  <- sapply(remd , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+moln <- data.frame()
+for(i in 1:length(time)){
+    moln[1:40000,i] <-  draws$b_Intercept + draws$b_molnupiravir +
+      draws$week_molnupiravir*time[i]}
+
+moln  <- sapply(moln , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+
+predict <- data.frame(
+  prediction = 
+    unlist(c(
+      exp(remd[3,]),  exp(moln[3,])
+      )), 
+   cil = 
+    unlist(c(
+      exp(remd[1,]),  exp(moln[1,])
+      )), 
+    ciu = 
+    unlist(c(
+      exp(remd[2,]), exp(moln[2,]) 
+             )),
+  time = rep(time, 2),  
+  treatment = c(
+    rep("remdesivir", 100),  rep("molnupiravir",100)
+    ))
+
+## figure
+
+cole <- c("#FF00FF", "#01AF40")
+
+fig_01d <- ggplot() +
+  
+  geom_line(data = predict, aes(x = time, 
+                                y = prediction, 
+                                group = treatment,
+                                color = treatment), size=1.05) +
+  geom_ribbon(data = predict, 
+              aes(x = time, ymin = cil, ymax = ciu, fill = treatment), 
+              alpha = 0.25, color = NA) +
+  
+  geom_line(data = data_mutations_spike, 
+            aes(x = week, y = f_50, group = Patient.ID), 
+            alpha = 0.8, color = 'grey30', size = 0.15,
+            method = 'lm', se=FALSE) +
+  
+  scale_color_manual(values = cole) +
+  scale_fill_manual(values = cole) +
+  labs(x = "Weeks", y = 'Mutations counts') +
+  facet_wrap(~treatment, ncol = 2) +
+  ggtitle("Spike protein, >50%") +
+  theme(plot.title = element_text(size = 11), axis.text.y = element_text(size = 9))
+
+fig_01d
+```
+
+#### Spike protein, >5%
+
+```{r, warning=FALSE}
+time <- seq(0, 5, length.out = 100)
+
+draws <- as_draws_df(mutfreBM_spike5_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  select(week_molnupiravir, week_remdesivir, b_molnupiravir, b_Intercept)
+
+
+remd <- data.frame()
+for(i in 1:length(time)){
+    remd[1:40000,i] <-  draws$b_Intercept + draws$week_remdesivir*time[i]}
+
+remd  <- sapply(remd , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+moln <- data.frame()
+for(i in 1:length(time)){
+    moln[1:40000,i] <-  draws$b_Intercept + draws$b_molnupiravir +
+      draws$week_molnupiravir*time[i]}
+
+moln  <- sapply(moln , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+
+predict <- data.frame(
+  prediction = 
+    unlist(c(
+      exp(remd[3,]),  exp(moln[3,])
+      )), 
+   cil = 
+    unlist(c(
+      exp(remd[1,]),  exp(moln[1,])
+      )), 
+    ciu = 
+    unlist(c(
+      exp(remd[2,]), exp(moln[2,]) 
+             )),
+  time = rep(time, 2),  
+  treatment = c(
+    rep("remdesivir", 100),  rep("molnupiravir",100)
+    ))
+
+## figure
+
+cole <- c("#FF00FF", "#01AF40")
+
+fig_01e <- ggplot() +
+  
+  geom_line(data = predict, aes(x = time, 
+                                y = prediction, 
+                                group = treatment,
+                                color = treatment), size=1.05) +
+  geom_ribbon(data = predict, 
+              aes(x = time, ymin = cil, ymax = ciu, fill = treatment), 
+              alpha = 0.25, color = NA) +
+  
+  geom_line(data = data_mutations_spike, 
+            aes(x = week, y = f_5, group = Patient.ID), 
+            alpha = 0.8, color = 'grey30', size = 0.15,
+            method = 'glm', se=FALSE,
+            method.args=list(family="poisson")) +
+  
+  scale_color_manual(values = cole) +
+  scale_fill_manual(values = cole) +
+  labs(x = "Weeks", y = 'Mutations counts') +
+  facet_wrap(~treatment, ncol = 2) +
+  ggtitle("Spike protein, >5%") +
+  theme(plot.title = element_text(size = 11), axis.text.y = element_text(size = 9))
+
+fig_01e
+```
+
+
+#### Spike protein, >0.5%
+
+```{r, warning=FALSE}
+time <- seq(0, 5, length.out = 100)
+
+draws <- as_draws_df(mutfreBM_spike05_wr) %>% 
+  mutate(week_molnupiravir = b_week + `b_week:molnupiravir`,
+         week_remdesivir = b_week) %>% 
+  select(week_molnupiravir, week_remdesivir, b_molnupiravir, b_Intercept)
+
+
+remd <- data.frame()
+for(i in 1:length(time)){
+    remd[1:40000,i] <-  draws$b_Intercept + draws$week_remdesivir*time[i]}
+
+remd  <- sapply(remd , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+moln <- data.frame()
+for(i in 1:length(time)){
+    moln[1:40000,i] <-  draws$b_Intercept + draws$b_molnupiravir +
+      draws$week_molnupiravir*time[i]}
+
+moln  <- sapply(moln , function(p) quantile(p, probs = c(0.025,0.975,0.5)))
+
+
+predict <- data.frame(
+  prediction = 
+    unlist(c(
+      exp(remd[3,]),  exp(moln[3,])
+      )), 
+   cil = 
+    unlist(c(
+      exp(remd[1,]),  exp(moln[1,])
+      )), 
+    ciu = 
+    unlist(c(
+      exp(remd[2,]), exp(moln[2,]) 
+             )),
+  time = rep(time, 2),  
+  treatment = c(
+    rep("remdesivir", 100),  rep("molnupiravir",100)
+    ))
+
+## figure
+
+cole <- c("#FF00FF", "#01AF40")
+
+fig_01f <- ggplot() +
+  
+  geom_line(data = predict, aes(x = time, 
+                                y = prediction, 
+                                group = treatment,
+                                color = treatment), size=1.05) +
+  geom_ribbon(data = predict, 
+              aes(x = time, ymin = cil, ymax = ciu, fill = treatment), 
+              alpha = 0.25, color = NA) +
+  
+  geom_line(data = data_mutations_spike, 
+            aes(x = week, y = f_05, group = Patient.ID), 
+            alpha = 0.8, color = 'grey30', size = 0.15,
+            method = 'glm', se=FALSE,
+            method.args=list(family="poisson")) +
+  
+  scale_color_manual(values = cole) +
+  scale_fill_manual(values = cole) +
+  labs(x = "Weeks", y = 'Mutations counts') +
+  facet_wrap(~treatment, ncol = 2)+
+  ggtitle("Spike protein, >0.5%") +
+  theme(plot.title = element_text(size = 11), axis.text.y = element_text(size = 9))
+
+fig_01f
+```
+
+### Combo figure
+
+```{r, fig.height=6, fig.width=8}
+#| fig.cap: 'Figure. Estimated number of mutation over time, separately for different treatment and ICVs type. Thick colored lines show median posterior prediction, polygons show bounds of 95% credible interval. Grey lines show data per each patient. Estimates are based on a Bayesian hierarchical generalized linear model with a Poisson distribution and weakly informative (slightly regularizing) priors. See methods for details'
+
+mutation_time_combo <- ggarrange(
+  fig_01a + theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank()), 
+  
+  fig_01b +
+    theme(axis.title.y = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title.x = element_blank()),  
+  fig_01c +
+    theme(axis.title.y = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title.x = element_blank()),  
+  fig_01d,
+  
+  fig_01e +
+    theme(axis.title.y = element_blank()),
+  
+  fig_01f +
+    theme(axis.title.y = element_blank()),
+  
+  labels = c("A", "B", "C", "D", "E", "F"),
+  nrow = 2, ncol=3,
+  heights = c(1, 1.25),
+  widths = c(1.1, 1, 1),
+  common.legend = TRUE, 
+  legend = "bottom"
+  )
+
+plotac <- 'mutation_time_combo'
+
+get(plotac)
+ path = paste0('gitignore/figures/',plotac, '.pdf')
+ if(file.exists(path) == FALSE){
+   ggsave(path, 
+          plot = get(plotac), 
+          width = 8, height = 6, units = "in")
+ }
+```
+
+
+
+# Results description
+
+## Probability maps
+
+A probabilistic model confirmed that the probability of a viable virus depends on both the time from the onset of symptoms and Ct. Specifically, a model with informed priors suggests that a one-unit change in Ct is related to a 60% decrease (95% CI: 36 to 80% decrease) in the odds of viability (OR: 0.4, 95% CI: 0.2 to 0.64). Similarly, the odds of viability decrease with each additional week by 69% (95% CI: 24 to 88%; odds ratio: 0.31, 95% CI: 0.12 to 0.76).
+
+Figure XXX shows a probability map indicating the probability of the viable virus given the Ct and time from symptom onset, accounting for the uncertainty in the estimated model parameters and adjusting for repeated measurements of the same individuals. The results thus indicate that there is less than a 5% risk of a viable virus when the Ct exceeds 32.6 (1 week post-symptoms onset), 30.9 (two weeks), 29.6 (three weeks), 28.5 (four weeks), and 27.4 (five weeks post-symptoms onset).
+
+Sensitivity analysis with very weakly informative priors shows similar results (Suppl. Figure XX1). Supplementary Figures XX2 and XX3 show the same map but assume that the median posterior estimates are correct (i.e., the uncertainty in the estimated parameters is not accounted for).
+
+## Covid mutations over time
+
+We used Bayesian hierarchical models to evaluate changes in mutation numbers over time and their relation to treatment. Across various ISNVs (spike vs. whole genome, frequencies >0.5%, >5%, and >50%), results were relatively consistent: negligible to small changes in Remdesivir-treated patients (very likely <20% change per week across all ISNVs) and a possibly substantial increase in the Molnupiravir group (Table X, Figure X). For instance, the model for whole genome ISNVs with a frequency >5% showed a probably noticeable increase in the Molnupiravir group (95% CrI: 1.13 to 1.38) but indicated negligible to small change in the Remdesivir group (95% CrI for 1-week fold-change: 0.995 to 1.09). Models of other ISNVs showed similar yet statistically less clear patterns.
+
+
+# Reproducibility
+
+```{r}
+sessionInfo()
+```
