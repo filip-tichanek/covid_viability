@@ -1,7 +1,7 @@
 **Authors' affiliations**:
 
 <div style="font-size: larger;">
-[Ivan Zahradka<sup>1</sup>, Vojtech Petr<sup>1</sup>, Jan Paces<sup>2</sup>, Jana Zdychova<sup>3</sup>, Alena Srbova<sup>3</sup>, Radomira Limberkova<sup>4</sup>, Timotej Suri<sup>4</sup>, Filip Tichanek<sup>5</sup>, Denisa Husakova<sup>4</sup>, Helena Jirincova<sup>4</sup>, Miluse Hradilova<sup>2</sup>, Ilja Striz<sup>3</sup>, Ondrej Viklicky<sup>1</sup>
+Ivan Zahradka<sup>1</sup>, Vojtech Petr<sup>1</sup>, Jan Paces<sup>2</sup>, Jana Zdychova<sup>3</sup>, Alena Srbova<sup>3</sup>, Radomira Limberkova<sup>4</sup>, Timotej Suri<sup>4</sup>, Filip Tichanek<sup>5</sup>, Denisa Husakova<sup>4</sup>, Helena Jirincova<sup>4</sup>, Miluse Hradilova<sup>2</sup>, Ilja Striz<sup>3</sup>, Ondrej Viklicky<sup>1</sup>
 </div>
 
 <sup>1</sup> Department of Nephrology, Institute for Clinical and Experimental Medicine
