@@ -62,23 +62,8 @@ body {
 
 ------------------------------------------------------------------------
 
-**Authors' affiliations**:
 
-[Ivan Zahradka^1^, Vojtech Petr^1^, Jan Paces^2^, Jana Zdychova^3^, Alena Srbova^3^, Radomira Limberkova^4^, Timotej Suri^4^, Filip Tichanek^5^, Denisa Husakova^4^, Helena Jirincova^4^, Miluse Hradilova^2^, Ilja Striz^3^, Ondrej Viklicky^1^]{style="font-size: larger;"}
-
-^1^Department of Nephrology, Institute for Clinical and Experimental Medicine ^2^Institute of Molecular Genetics, Academy of Sciences of the Czech Republic ^3^Department of Immunology, Institute for Clinical and Experimental Medicine ^4^National Reference Laboratory for Influenza and Other Respiratory Viruses, National Institute of Public Health ^5^Department of Data Science, Institute for Clinical and Experimental Medicine
-
-<br>
-
-**Original publication**
-
-This is statistical report of for the publication *TO BE ADDED*, published in the *TO BE ADDED* <br>
-
-[When using this code, cite original publication:]{style="font-size: larger;"}
-
-<br>
-
-Original GitHub repository: https://filip-tichanek.github.io/covid_viability/
+{{< include README.md >}}
 
 ------------------------------------------------------------------------
 
