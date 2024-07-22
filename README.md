@@ -14,7 +14,7 @@ Ivan Zahradka<sup>1</sup>, Vojtech Petr<sup>1</sup>, Jan Paces<sup>2</sup>, Jana
 
 ---------------------------------------------------------------------------------------------------
 
-This is a statistical report of the study that has been submitted to the [BMJ](https://www.bmj.com/) journal.
+This is a statistical report of the study ***Low Risk of Prolonged SARS-CoV-2 Shedding and Molecular Evolution in Kidney Transplant Recipients during the Omicron Era: A Prospective Observational Study*** that has been submitted to the [BMJ](https://www.bmj.com/) journal.
 
 When using this code or data, cite the original publication:
 

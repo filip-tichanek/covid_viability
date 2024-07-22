@@ -1,5 +1,5 @@
 ---
-title: "Low rate of Molecular Evolution of SARS-CoV-2 in Kidney Transplant Recipients"
+title: "Low Risk of Prolonged SARS-CoV-2 Shedding and Molecular Evolution in Kidney Transplant Recipients during the Omicron Era: A Prospective Observational Study"
 subtitle: "Statistical report"
 author: "Ivan Zahradka et al."
 format: 
