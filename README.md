@@ -6,14 +6,10 @@ Ivan Zahradka<sup>1</sup>, Vojtech Petr<sup>1</sup>, Jan Paces<sup>2</sup>, Jana
 
 <br>
 
-<sup>1</sup> Department of Nephrology, Institute for Clinical and Experimental Medicine.
-
-<sup>2</sup> Institute of Molecular Genetics, Academy of Sciences of the Czech Republic.
-
-<sup>3</sup> Department of Immunology, Institute for Clinical and Experimental Medicine.
-
-<sup>4</sup> National Reference Laboratory for Influenza and Other Respiratory Viruses, National Institute of Public Health.
-
+<sup>1</sup> Department of Nephrology, Institute for Clinical and Experimental Medicine.  
+<sup>2</sup> Institute of Molecular Genetics, Academy of Sciences of the Czech Republic.  
+<sup>3</sup> Department of Immunology, Institute for Clinical and Experimental Medicine.  
+<sup>4</sup> National Reference Laboratory for Influenza and Other Respiratory Viruses, National Institute of Public Health.  
 <sup>5</sup> Department of Data Science, Institute for Clinical and Experimental Medicine.
 
 ---------------------------------------------------------------------------------------------------
