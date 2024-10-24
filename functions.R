@@ -129,7 +129,7 @@ excel_date <- function(data, dates) {
 #' @return A vector of two-sided p-values for each coefficient in the model.
 #' @examples
 #' # Assuming 'data' is your dataframe with variables 'count', 'x1', and 'x2'
-#' # and you have already fitted a glm.nb model:
+#' and you have already fitted a glm.nb model:
 #' set.seed(123)
 #' data <- data.frame(
 #'   count = rnbinom(100, mu = 10, size = 1),

@@ -1,7 +1,6 @@
 ---
 title: "Low Risk of Prolonged SARS-CoV-2 Shedding and Molecular Evolution in Kidney Transplant Recipients during the Omicron Era: A Prospective Observational Study"
 subtitle: "Statistical report"
-author: "Ivan Zahradka et al."
 format: 
   html:  
     embed-resources: true
@@ -41,12 +40,13 @@ knitr::opts_chunk$set(collapse = TRUE)
 ```{css, echo=FALSE}
 code.sourceCode {
   font-size: 0.86em;
-  border: 1px solid #ffffff; /* White border */
-  padding: 9px; /* Add padding for better visibility */
+  border: 1px solid #ffffff;
+  padding: 9px; 
 }
 
 code{
-    color: #EEE8AA; /* Change the color value as needed */
+    color: #EEE8AA; 
+    background: #96464D
 }
 
 .equation {
@@ -93,15 +93,13 @@ We ran models with both ***weakly informative priors*** (with minimal impact on 
 
 Therefore, the priors can be expressed as $normal(\mu, \sigma)$, where:
 
-$$\mu = -\beta_{berengua}$$
+$$\mu = \beta_{berengua}$$
 
-$$\sigma = SE[\beta_{berengua}] \times 2$$ for ***informative prior***
+$$\sigma = SE(\beta_{berengua}) \times 2$$ for ***informative prior***
 
 and
 
-$$\sigma = SE[\beta_{berengua}] \times 10$$
-
-for ***weakly informative prior***, with $\beta_{berengua}$ being estimated effect from [@berengua2022], and $SE[\beta_{berengua}]$ being standard error of estimated effects according to [@berengua2022].
+$$\sigma = SE(\beta_{berengua}) \times 10$$ for ***weakly informative prior***, with $\beta_{berengua}$ being estimated effect from [@berengua2022], and $SE[\beta_{berengua}]$ being standard error of estimated effects according to [@berengua2022].
 
 <br>
 
@@ -121,7 +119,7 @@ The prior for the `week:molnupiravir` interaction was set to $\mu = 0.1$ and $\s
 
 ## Univariable negative binomial regression
 
-Negative binomial generalized linear models (NB-GLM), fitted with `MASS` package [@MASS], were used to assess the effect of several predictors (fitted in separate univariable models) on the number of days when the patient was positive as shown either using PCR (`symptoms_neg_PCR_days`) or cell cultures (`symptoms_neg_viability_days`). Due to the small sample size, P-values were validated using a permutation test of the model coefficients. The small sample size is also the reason why we did not perform multivariable model.
+Negative binomial generalized linear models (NB-GLM), fitted with `MASS` package [@MASS], were used to assess the effect of several predictors (fitted in separate univariable models) on the number of days when the patient was positive as shown either using PCR (`symptoms_neg_PCR_days`) or cell cultures (`symptoms_neg_viability_days`). Due to the small sample size, P-values were validated using a permutation test of the model coefficients. The small sample size is also the reason why we did not perform multivariable model. As a sensitivity analysis, we also performed two-variables NB-GLM, with the same predictors as above plus with days after last vaccination as a covariate. 
 
 # Analysis
 
@@ -162,7 +160,8 @@ if (TRUE) {
     library(quantreg)
     library(ggbeeswarm)
     library(ggpubr)
-    library(pROC)
+    library(ggdag)
+    library(dagitty)
     
     # Functions clashes
     select <- dplyr::select
@@ -214,12 +213,17 @@ set.seed(16)
 ### Import
 
 ```{r}
-data <- read.xlsx('gitignore/data/zdroj virova rna.xlsx') %>% 
-  select(patient_ID:T_depl_year, D0_date:D6_PCR, PRA:DM) %>% 
+data <- read.xlsx('gitignore/data/zdroj virova rna2.xlsx') %>% 
+  select(patient_ID:T_depl_year, 
+         D0_date:D6_PCR, 
+         PRA:DM,
+         days_last_dose:vacc.last.date) %>% 
   mutate(patient_ID = as.character(patient_ID),
          antiviral = as.numeric(antiviral-1)) %>% 
-  mutate(across(where(is.character), ~if_else(. == "neg.", "0", .))) %>% 
-  mutate(across(where(is.character), ~if_else(. == "neg", "0", .))) 
+  mutate(across(where(is.character), 
+                ~if_else(. == "neg.", "0", .))) %>% 
+  mutate(across(where(is.character), 
+                ~if_else(. == "neg", "0", .))) 
 
 dates <- colnames(data)[grepl('date', colnames(data))]
 
@@ -227,6 +231,7 @@ data <- excel_date(data, dates = dates) %>%
   mutate(days_postsymp = D0_date - symptoms_date)
 
 summary(data)
+dim(data)
 ```
 
 ### Long format
@@ -264,6 +269,7 @@ data_long <- read.table('data/data_long.txt') %>%
   mutate(patient_ID = factor(patient_ID))
 
 summary(data_long)
+dim(data_long)
 ```
 
 ### Data for univariable GLMs
@@ -277,7 +283,7 @@ if(file.exists('data/data.txt') == FALSE){
            days_from_Tx, HLA.missmatch, `Doba.na.HD.(roky)`, 
            `CMV.dárce`, `CMV.pozitivita.příjemce`, 
            `imunosuprese.před.Tx`, DM, tx_date, birth_date,
-           antiviral, 
+           antiviral, days_last_dose,
            symptoms_neg_PCR_days,
            symptoms_neg_viability_days) %>% 
     
@@ -293,9 +299,11 @@ if(file.exists('data/data.txt') == FALSE){
     mutate(Tx_less_year = if_else(Years_since_Tx < 1, 1, 0),
            CMV_MM = if_else(CMV_don == 1 & CMV_rec == 0, 1, 0)) %>% 
     
-    select(male_sex, age_at_COVID, age_at_Tx, Years_since_Tx, Tx_less_year,
+    select(male_sex, age_at_COVID, age_at_Tx, 
+           Years_since_Tx, Tx_less_year,
            T_depl_year, PRA, HLA_MM, HD_vignette, CMV_rec, CMV_don, 
            IS_preTx, DM, Remdsivir,
+           days_last_dose,
            symptoms_neg_PCR_days,
            symptoms_neg_viability_days)
   
@@ -352,6 +360,87 @@ data_mutations_all <- data_mutations %>%
   filter(s_all == 'all')
 
 ```
+
+## Directed acyclic graph (DAG)
+
+
+```{r, fig.width=10, fig.height=7}
+#| fig.cap: "Directed Acyclic Graph (DAG) illustrating the conceptual relationships between potentially measurable variables (pink), latent variables (grey), and the outcome of interest, SARS-CoV-2 clearance (blue). Arrows represent hypothesized causal influence between variables. `IS`: immunosupression"
+
+set.seed(667)
+
+dag <- dagify(
+  Covid19_clearence ~ Vaccination + Treatment + Immunocompetence,
+  Immunocompetence ~ IS + Sex + Diabetes +
+    eGFR + Dialysis_vignette + Age,
+  IS ~ IS_pre_Tx + Maintance_IS + T_cell_depletion,
+  Maintance_IS ~ Immunological_risk + Time_from_Tx,
+  T_cell_depletion ~ Immunological_risk + Time_from_Tx,
+  Immunological_risk ~ HLA_mismatch + PRA + DSA,
+  outcome = "Covid19_clearence",
+  latent = c("Immunological_risk", "Immunocompetence", "IS")
+)
+
+tidy_dag <- tidy_dagitty(dag)
+
+tidy_dag$data$node_type <- ifelse(
+  tidy_dag$data$name %in% dagitty::exposures(dag),
+  "exposure",
+  ifelse(tidy_dag$data$name %in% dagitty::outcomes(dag), "outcome",
+    ifelse(tidy_dag$data$name %in% dagitty::latents(dag), "latent", "other")
+  )
+)
+
+tidy_dag$data$name <- gsub("_", " ", tidy_dag$data$name)
+
+tidy_dag$data[which(tidy_dag$data$name == 'Maintance IS'),]$x <- 2.8
+tidy_dag$data[which(tidy_dag$data$to == 'Maintance_IS'),]$xend <- 2.8
+
+tidy_dag$data[which(tidy_dag$data$name == 'Maintance IS'),]$y <- 2.2
+tidy_dag$data[which(tidy_dag$data$to == 'Maintance_IS'),]$yend <- 2.2
+
+tidy_dag$data[which(tidy_dag$data$name == 'Immunological risk'),]$y <- 2.9
+tidy_dag$data[which(tidy_dag$data$to == 'Immunological_risk'),]$yend <- 2.9
+
+tidy_dag$data[which(tidy_dag$data$name == 'T cell depletion'),]$y <- 1.7
+tidy_dag$data[which(tidy_dag$data$to == 'T_cell_depletion'),]$yend <- 1.7
+
+tidy_dag$data[which(tidy_dag$data$name == 'Covid19 clearence'),]$y <- 0.1
+tidy_dag$data[which(tidy_dag$data$to == 'Covid19_clearence'),]$yend <- 0.1
+
+tidy_dag$data[which(tidy_dag$data$name == 'Dialysis vignette'),]$x <- 0.3
+tidy_dag$data[which(tidy_dag$data$name == 'PRA'),]$x <- 6
+tidy_dag$data[which(tidy_dag$data$name == 'DSA'),]$y <- 3.5
+
+# Plot the DAG with custom styles for exposure, latent, outcome, and other nodes
+dag <- ggdag(tidy_dag, layout = "nicely") +
+  geom_dag_point(aes(color = node_type),
+    fill = "white",
+    size = 18,
+    stroke = 1
+  ) +
+  geom_dag_edges(edge_color = "steelblue") +
+  geom_dag_text(color = "black", 
+                size = 3.4) +
+  theme_dag() +
+  scale_color_manual(
+    values = c(
+      "outcome" = "lightblue",
+      "latent" = "lightgray",
+      "other" = "pink"
+    )
+  ) +
+  labs(color = "Type of variable")
+
+dag 
+
+path <-  paste0('gitignore/figures/dag.pdf')
+if(file.exists(path) == FALSE){
+  ggsave(path, 
+         plot = dag, width = 10, height = 7, units = "in")
+}
+```
+
 
 ## Model - probability map
 
@@ -1145,7 +1234,6 @@ data %>% tbl_summary(
 #### Function to run all models
 
 ```{r, message=FALSE}
-
 run_perm <- function(predictors_vector, outcome, data){
   
   b_coef <- vector('double', length(predictors_vector))
@@ -1162,7 +1250,7 @@ run_perm <- function(predictors_vector, outcome, data){
     model <- glm.nb(out ~ pred, 
                     data = data)
     
-    permP <- perm_model(model, nsim = 5000)
+    permP <- perm_model(model, nsim = 21000)
     
     b_coef[i] <- coef(model)[2]
     CI_L[i] <- confint(model)[2,1]
@@ -1172,25 +1260,74 @@ run_perm <- function(predictors_vector, outcome, data){
   }
   results <- data.frame(
     Predictor = predictors_vector,
-    b_coef, CI_L, CI_U, P_parametric, P_permutation
+    Rate_ratio = exp(b_coef), 
+    CI_L = exp(CI_L), 
+    CI_U = exp(CI_U), P_parametric, P_permutation
   )
   
   return(results)
-  
 }
 ```
+
+#### Function to run parametric model with days after last vaccination as a covariate
+
+```{r}
+run_glmnb <- function(predictors_vector, outcome, data){
+  
+  b_coef <- vector('double', length(predictors_vector))
+  CI_L <- vector('double', length(predictors_vector))
+  CI_U <- vector('double', length(predictors_vector))
+  P_parametric <- vector('double', length(predictors_vector))
+  
+  b_coef_DLD <- vector('double', length(predictors_vector))
+  P_parametric_DLD <- vector('double', length(predictors_vector))
+  
+  for (i in 1:length(predictors_vector)){
+    
+    pred <- data[, predictors_vector[i]]
+    out <- data[, outcome]
+    
+    model <- glm.nb(out ~ pred + days_last_dose, 
+                    data = data)
+    
+    b_coef[i] <- coef(model)[2]
+    CI_L[i] <- confint(model)[2,1]
+    CI_U[i] <- confint(model)[2,2]
+    P_parametric[i] <- summary(model)$coefficients[2, 4]
+    b_coef_DLD[i] <- coef(model)[3]
+    P_parametric_DLD[i] <- summary(model)$coefficients[3, 4]
+
+  }
+  results <- data.frame(
+    Predictor = predictors_vector,
+    Rate_ratio = exp(b_coef), 
+    CI_L = exp(CI_L), 
+    CI_U = exp(CI_U), P_parametric,
+    Rate_ratio_DLD = exp(b_coef_DLD),
+    P_parametric_DLD
+  )
+  
+  return(results)
+}
+```
+
+
+
 
 #### Days of PCR positive
 
 ```{r, message=FALSE}
+set.seed(446)
+
 res_PCR <- run(
-  expr = run_perm(names(data)[1:14], 'symptoms_neg_PCR_days', data),
+  expr = run_perm(names(data)[1:15], 'symptoms_neg_PCR_days', data),
   path = 'gitignore/run/res_PCR',
   reuse = TRUE)
 
 res_PCR[, 2:4] <- round(res_PCR[, 2:4], 3)
 res_PCR[, 5:6] <- round(res_PCR[, 5:6], 4)
-kableExtra::kable(res_PCR)
+kableExtra::kable(res_PCR,
+                  caption = 'Effect of various predictors on the number of days with PCR positivity. Estimates are derived from a series of single-variable generalized linear models (GLMs) with a negative binomial distribution, supplemented by a permutation test. `Rate ratio` represents the fold-change in the response for each unit increase in the predictor. `CI_L` and `CI_U` indicate the lower and upper bounds of the 95% confidence interval, respectively. `P_parametric` refers to the P-value from the parametric NB-GLM, while `P_permutation` refers to the P-value obtained from the permutation test.')
 
 if(file.exists('gitignore/outputs/res_PCR.xlsx') == FALSE){
   write.xlsx(res_PCR, 'gitignore/outputs/res_PCR.xlsx')
@@ -1200,17 +1337,78 @@ if(file.exists('gitignore/outputs/res_PCR.xlsx') == FALSE){
 #### Days of viable virus
 
 ```{r, message=FALSE}
+set.seed(446)
+
 res_viability <- run(
-  expr = run_perm(names(data)[1:14], 'symptoms_neg_viability_days', data),
+  expr = run_perm(names(data)[1:15], 'symptoms_neg_viability_days', data),
   path = 'gitignore/run/res_viability',
   reuse = TRUE)
 
 res_viability[, 2:4] <- round(res_viability[, 2:4], 3)
 res_viability[, 5:6] <- round(res_viability[, 5:6], 4)
-kableExtra::kable(res_viability)
+kableExtra::kable(res_viability,
+                  caption = 'Effect of various predictors on the number of days with viable virus. Estimates are derived from a series of single-variable generalized linear models (GLMs) with a negative binomial distribution, supplemented by a permutation test. `Rate ratio` represents the fold-change in the response for each unit increase in the predictor. `CI_L` and `CI_U` indicate the lower and upper bounds of the 95% confidence interval, respectively. `P_parametric` refers to the P-value from the parametric NB-GLM, while `P_permutation` refers to the P-value obtained from the permutation test.')
 
 if(file.exists('gitignore/outputs/res_viability.xlsx') == FALSE){
   write.xlsx(res_PCR, 'gitignore/outputs/res_viability.xlsx')
+}
+```
+
+
+
+#### Days of PCR positive with days after vaccination as a covariate
+
+```{r, message=FALSE}
+res_PCR <- run(
+  expr = run_glmnb(names(data)[1:14], 'symptoms_neg_PCR_days', data),
+  path = 'gitignore/run/res_PCR_lastdose',
+  reuse = TRUE)
+
+res_PCR[, 2:4] <- round(res_PCR[, 2:4], 3)
+res_PCR[, 5:6] <- round(res_PCR[, 5:6], 4)
+colnames(res_PCR)[1] <- 'Main predictor'
+colnames(res_PCR)[5] <- 'P'
+colnames(res_PCR)[7] <- 'P_DLD'
+
+kableExtra::kable(res_PCR,
+                  caption = 'Effect of various predictors on the number of days with PCR positivity. Estimates are derived from a series of two-variable generalized linear models (GLMs) with a negative binomial distribution, with the first predictor being named in the `main predictor` column and the second predictor being the number of days after last dose application (`DLD`). `Rate ratio` represents the fold-change in the response for each unit increase in the main predictor. `CI_L` and `CI_U` indicate the lower and upper bounds of the 95% confidence interval, respectively. `P` refers to the P-value for the effect of the main predictor, based on the parametric NB-GLM. `Rate_ratio_DLD` and `P_DLD` represent the rate ratio and P-value, respectively, for the effect of DLD') %>%
+  add_header_above(c(" " = 1,
+                     "Main predictor" = 4, 
+                     "Days after last dose" = 2))
+
+if(file.exists('gitignore/outputs/res_PCR_lastdose.xlsx') == FALSE){
+  write.xlsx(res_PCR, 'gitignore/outputs/res_PCR_lastdose.xlsx')
+}
+```
+
+We will try also estimate effect of the `
+
+#### Days of viable virus with days after vaccination as a covariate
+
+```{r, message=FALSE}
+res_viability <- run(
+  expr = run_glmnb(names(data)[1:14], 
+                   'symptoms_neg_viability_days', 
+                   data),
+  path = 'gitignore/run/res_viability_lastdose',
+  reuse = TRUE)
+
+res_viability[, 2:4] <- round(res_viability[, 2:4], 3)
+res_viability[, 5:6] <- round(res_viability[, 5:6], 4)
+colnames(res_viability)[1] <- 'Main predictor'
+colnames(res_viability)[5] <- 'P'
+colnames(res_viability)[7] <- 'P_DLD'
+
+kableExtra::kable(res_viability,
+                  caption = 'Effect of various predictors on the number of days with viable virus. Estimates are derived from a series of two-variable generalized linear models (GLMs) with a negative binomial distribution, with the first predictor being named in the `main predictor` column and the second predictor being the number of days after last dose application (`DLD`). `Rate ratio` represents the fold-change in the response for each unit increase in the main predictor. `CI_L` and `CI_U` indicate the lower and upper bounds of the 95% confidence interval, respectively. `P` refers to the P-value for the effect of the main predictor, based on the parametric NB-GLM. `Rate_ratio_DLD` and `P_DLD` represent the rate ratio and P-value, respectively, for the effect of DLD') %>%
+  add_header_above(c(" " = 1,
+                     "Main predictor" = 4, 
+                     "Days after last dose" = 2))
+
+if(file.exists(
+  'gitignore/outputs/res_viability_lastdose.xlsx') == FALSE){
+  write.xlsx(res_viability,
+             'gitignore/outputs/res_viability_lastdose.xlsx')
 }
 ```
 
@@ -1246,9 +1444,6 @@ prior4_wide <- c(
   prior(normal(0, 29), class = b, coef = 'week'),
   prior(normal(0.1, 10), class = b, coef = 'molnupiravir'),
   prior(normal(0, 2.5), class = b, coef = 'week:molnupiravir'))
-
-
-
 ```
 
 ### f_05 all mutations model
