@@ -14,7 +14,7 @@ Ivan Zahradka<sup>1</sup>, Vojtech Petr<sup>1</sup>, Jan Paces<sup>2</sup>, Jana
 
 ---------------------------------------------------------------------------------------------------
 
-This is a statistical report of the study ***Low Risk of Prolonged SARS-CoV-2 Shedding and Molecular Evolution in Kidney Transplant Recipients during the Omicron Era: A Prospective Observational Study*** that is *accepted* in the [American Journal of Transplantation](https://www.amjtransplant.org/) journal.
+This is a statistical report of the study [***Low Risk of Prolonged SARS-CoV-2 Shedding and Molecular Evolution in Kidney Transplant Recipients during the Omicron Era: A Prospective Observational Study***](https://www.amjtransplant.org/article/S1600-6135(24)00744-5/abstract) that has been published in the *American Journal of Transplantation* journal.
 
 When using this code or data, cite the original publication:
 
